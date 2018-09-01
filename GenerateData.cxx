@@ -551,7 +551,7 @@ namespace hashfight
       vtkm::UInt32 numWinners = (vtkm::UInt32) numActiveEntries - numLosers;
       //std::cout << "numLosers = " << numLosers << "\n";
       //std::cout << "numWinners = " << numWinners << "\n";
-      //std::cout << "percent placed in table = " << numWinners / (1.0f*numActiveEntries) << "\n";
+      std::cout << "percent placed in table = " << numWinners / (1.0f*numActiveEntries) << "\n";
  
       numActiveEntries = numLosers;  
       subTableStart += subTableSize; 
@@ -678,6 +678,7 @@ int CheckResults_basic(const unsigned kInputSize,
                        const unsigned *query_vals)
 {
   int errors = 0;
+  int not_found = 0;
   for (unsigned i = 0; i < kInputSize; ++i)
   {
     unsigned actual_value = keyNotFound;
@@ -685,6 +686,8 @@ int CheckResults_basic(const unsigned kInputSize,
             pairs.find(query_keys[i]);
     if (it != pairs.end())
       actual_value = it->second;
+    else
+      not_found++;
     if (actual_value != query_vals[i])
     {
       errors++;
@@ -693,6 +696,7 @@ int CheckResults_basic(const unsigned kInputSize,
                    query_keys[i], actual_value, query_vals[i]);
     }
   }
+  std::cout << "not_found = " << not_found << "\n";
   return errors;
 }
 
@@ -701,6 +705,9 @@ int main(int argc, char** argv)
 {
   if (argc < 2)
     return -1;
+
+  std::cout << "========================CUDPP Cuckoo Hashing"
+            << "==============================\n";
 
   int deviceCount;
   cudaGetDeviceCount(&deviceCount);
@@ -727,10 +734,7 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-  
-  std::string data_dir("/home/users/blessley/hashing-data/");
-
-#if 0
+#if 1
   unsigned int* input_keys = NULL;
   unsigned int* input_vals = NULL;
   unsigned *query_keys = NULL;
@@ -744,6 +748,7 @@ int main(int argc, char** argv)
   const unsigned int maxInputSize = 500000000;
   const unsigned int minInputSize = 25000000;
   const unsigned int inputStepSize = 25000000;
+  std::string data_dir("/home/users/blessley/hashing-data/");
   //const int numSpaceUsagesToTest = 9;
   //const float kSpaceUsagesToTest[9] = {1.03f, 1.05f, 1.10f, 1.15f, 1.25f, 1.5f, 1.75f, 1.9f, 2.0f};
   for (int trialId = 0; trialId < overall_trials; trialId++)
@@ -802,18 +807,20 @@ int main(int argc, char** argv)
 #endif
 
 
-#if 1
+#if 0
 
-  //std::cout << "========================CUDPP Cuckoo Hashing"
-    //        << "==============================\n";
-  
   unsigned int kInputSize = (unsigned int)std::atoi(argv[1]);
+
   unsigned int* input_keys = new unsigned int[kInputSize];
   unsigned int* input_vals = new unsigned int[kInputSize];
   unsigned *query_keys = new unsigned[kInputSize];
   unsigned int pool_size = kInputSize * 2;
   unsigned int* number_pool = new unsigned int[pool_size];
 
+#endif
+
+
+#if 0
   CUDPPHandle theCudpp;
   CUDPPResult result = cudppCreate(&theCudpp);
   if (result != CUDPP_SUCCESS)
@@ -828,29 +835,32 @@ int main(int argc, char** argv)
   config.type = htt;
   config.kInputSize = kInputSize;
   config.space_usage = (float)std::atof(argv[2]);  
+  
 
-  float failure_rate = (float)std::atof(argv[3])/(float)std::atof(argv[4]);
-  int num_trials = (int)std::atoi(argv[5]);
-
-  #if 1
-  //std::cout << "Loading binary of input keys and values...\n";
-  load_binary(input_keys, kInputSize, data_dir + "inputKeys-"+std::string(argv[1])+"-"+std::string(argv[5])); 
-  load_binary(input_vals, kInputSize, data_dir + "inputVals-"+std::string(argv[1])+"-"+std::string(argv[5])); 
+  #if 0
+  std::cout << "Loading input keys and values...\n";
+  load_binary(input_keys, kInputSize, "inputKeys-"+std::to_string(kInputSize)); 
+  load_binary(input_vals, kInputSize, "inputVals-"+std::to_string(kInputSize)); 
   #endif  
 
   //Save the original input for checking the results.
   std::unordered_map<unsigned, unsigned> pairs_basic;
   for (unsigned i = 0; i < kInputSize; ++i)
     pairs_basic[input_keys[i]] = input_vals[i];
- 
+
+  //std::cout << "Dumping binary files...\n";
+  
   unsigned int* d_test_keys = NULL, *d_test_vals = NULL;
 
-  //Begin insertion phase
+//std::cout << "cudaMalloc keys and vals...\n";
+  //Begin insertion phase for cuckoo hashing
+//START_TIMER_BLOCK(CuckooHashingBuild)
   CUDA_SAFE_CALL(cudaMalloc((void**) &d_test_keys,
                             sizeof(unsigned int) * kInputSize));
   CUDA_SAFE_CALL(cudaMalloc((void**) &d_test_vals,
                             sizeof(unsigned int) * kInputSize));
  
+  //std::cout << "cudaMemcpy keys and vals...\n";
   CUDA_SAFE_CALL(cudaMemcpy(d_test_keys, input_keys,
                             sizeof(unsigned int) * kInputSize,
                             cudaMemcpyHostToDevice));
@@ -868,62 +878,79 @@ int main(int argc, char** argv)
                     "least compute version 2.0\n");
   }
 
-  //std::cout << "(CuckooHash) Inserting into hash table...\n";
+  std::cout << "(CuckooHash) Inserting into hash table...\n";
   result = cudppHashInsert(hash_table_handle, d_test_keys, d_test_vals, kInputSize);
   cudaThreadSynchronize();
-  
+ 
+//END_TIMER_BLOCK(CuckooHashingBuild)
+ 
+  //printf("Cuckoo Hash table build complete\n");
   if (result != CUDPP_SUCCESS)
   {
     fprintf(stderr, "Error in cudppHashInsert call in"
                     " testHashTable\n");
   }
-
-  //Begin querying phase
-  
-  unsigned *query_vals = new unsigned[kInputSize];
-    
-  //Generate a set of queries comprised of keys both
-  //from and not from the input.
-
-  #if 1
-  //std::cout << "Loading binary of query keys...\n";
-  load_binary(query_keys, kInputSize, data_dir + "queryKeys-"+std::string(argv[1])+"-"+std::string(argv[3])+"-"+std::string(argv[4])+"-"+std::string(argv[5]));
   #endif
- 
-  CUDA_SAFE_CALL(cudaMemcpy(d_test_keys, query_keys,
+
+
+  #if 0 
+  //Begin querying phase for cuckoo hashing
+  
+    unsigned *query_vals = new unsigned[kInputSize];
+    
+    // Generate a set of queries comprised of keys both
+    // from and not from the input.
+    //keys-100000000-0-10-1
+
+    #if 1
+    std::cout << "Generating random query keys...\n";
+    GenerateQueries(kInputSize, failure_rate, number_pool, query_keys); 
+    //dump_binary(query_keys, kInputSize, "queryKeys-" + std::to_string(kInputSize));
+    #endif
+
+    #if 0
+    std::cout << "Loading input query keys...\n";
+    load_binary(query_keys, kInputSize, "queryKeys-"+std::to_string(kInputSize));
+    #endif
+
+    printf("(CuckooHash) Querying with %.3f chance of "
+           "failed queries\n", failure_rate);
+//START_TIMER_BLOCK(CuckooHashingRetrieve)
+   CUDA_SAFE_CALL(cudaMemcpy(d_test_keys, query_keys,
                               sizeof(unsigned int) * kInputSize,
                               cudaMemcpyHostToDevice));
-  CUDA_SAFE_CALL(cudaMemset(d_test_vals, 0,
+    CUDA_SAFE_CALL(cudaMemset(d_test_vals, 0,
                               sizeof(unsigned int) * kInputSize));
 
-  //printf("(CuckooHash) Querying with %.3f chance of "
-    //       "failed queries...\n", failure_rate);
-
-  result = cudppHashRetrieve(hash_table_handle,
+    unsigned int errors = 0;
+    result = cudppHashRetrieve(hash_table_handle,
                                d_test_keys, d_test_vals,
                                kInputSize); 
-  cudaThreadSynchronize();
+    cudaThreadSynchronize();
+//END_TIMER_BLOCK(CuckooHashingRetrieve)
 
-  if (result != CUDPP_SUCCESS)
-    fprintf(stderr, "Error in cudppHashRetrieve call in"
+    if (result != CUDPP_SUCCESS)
+      fprintf(stderr, "Error in cudppHashRetrieve call in"
                                 "testHashTable\n");
 
-  CUDA_SAFE_CALL(cudaMemcpy(query_vals, d_test_vals,
+    CUDA_SAFE_CALL(cudaMemcpy(query_vals, d_test_vals,
                               sizeof(unsigned) * kInputSize,
                               cudaMemcpyDeviceToHost));
 
-  #if 0 
-  //Check the query results.    
-  unsigned int errors = CheckResults_basic(kInputSize,
+    #if 0
+    //Check the results.    
+    errors += CheckResults_basic(kInputSize,
                                  pairs_basic,
                                  query_keys,
                                  query_vals);
-  if (errors > 0)
-    printf("%d errors found\n", errors);
-  else
-    printf("No errors found, test passes\n");
-  #endif
+    if (errors > 0)
+      printf("%d errors found\n", errors);
+    else
+      printf("No errors found, test passes\n");
+    #endif
   
+    
+
   //Free the hash table and data arrays from the device
   result = cudppDestroyHashTable(theCudpp, hash_table_handle);
   if (result != CUDPP_SUCCESS)
@@ -939,14 +966,29 @@ int main(int argc, char** argv)
 
 #endif
 
+#if 0 
+  delete [] input_keys;
+  delete [] input_vals;
+  input_keys = new unsigned int[20]; 
+  input_vals = new unsigned int[20];
+  kInputSize = 20;
 
-#if 1
+  int i;
+  unsigned int r;
+  for (i = 0; i < kInputSize; i++)
+  {
+    r = genrand_int32();
+    *(input_keys+i) = r;    
+    *(input_vals+i) = r;
+  }
+#endif
+
+
+
+#if 0
   using Algorithm = vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter>;
   using DeviceAdapterTraits = vtkm::cont::DeviceAdapterTraits<DeviceAdapter>;
-
-  //std::cout << "========================VTK-m HashFight Hashing"
-    //        << "==============================\n";
-  //std::cout << "Running on device adapter: " << DeviceAdapterTraits::GetName() << "\n";
+  std::cout << "Running on device adapter: " << DeviceAdapterTraits::GetName() << "\n";
 
   vtkm::cont::ArrayHandle<vtkm::UInt32> insertKeys =
     vtkm::cont::make_ArrayHandle(input_keys, kInputSize);
@@ -958,7 +1000,20 @@ int main(int argc, char** argv)
   debug::HashingDebug(insertKeys, "insertKeys");
   debug::HashingDebug(insertVals, "insertVals"); 
 
-  
+  /*
+  vtkm::cont::ArrayHandleCast<vtkm::Id, vtkm::cont::ArrayHandle<unsigned int> > castArrayKeys(insertKeys);
+  IdHandleType castedKeys;
+  Algorithm::Copy(castArrayKeys, castedKeys);
+ 
+  vtkm::cont::ArrayHandleCast<vtkm::Id, vtkm::cont::ArrayHandle<unsigned int> > castArrayVals(insertVals);
+  IdHandleType castedVals;
+  Algorithm::Copy(castArrayVals, castedVals);
+ 
+  debug::HashingDebug(castedKeys, "castedKeys");
+  debug::HashingDebug(castedVals, "castedVals");
+  */
+
+
   #if 0
   std::cout << "========================Thrust Radix SortByKey"
             << "==============================\n";
@@ -967,25 +1022,43 @@ int main(int argc, char** argv)
   #endif
 
 
+  std::cout << "========================VTK-m HashFight Hashing"
+            << "==============================\n";
+
   //Configure and initialize the hash table
   hashfight::HashTable<DeviceAdapter,UInt64HandleType> ht((vtkm::Id)kInputSize,
                                                         (vtkm::FloatDefault)std::atof(argv[2]));
 
-  vtkm::UInt32 tableBytes = (vtkm::UInt32)(ht.size * sizeof(vtkm::UInt32));
+  //std::cout << "Table size = " << ht.size << "\n";
 
-  //Insert the keys into the hash table 
-  //std::cout << "(HashFight) Inserting into hash table...\n";
+
+  vtkm::UInt32 tableBytes = (vtkm::UInt32)(ht.size * sizeof(vtkm::UInt32));
+  //std::cout << "L2 Cache Size = " << prop.l2CacheSize << "\n"
+    //        << "Global L1 Cache Supported = " << prop.globalL1CacheSupported << "\n"
+      //      << "Local L1 Cache Supported = " << prop.localL1CacheSupported << "\n";  
+
+  //std::cout << "Number of passes = 32\n";
+  //std::cout << "Chunk size = " << tableBytes / 32 << "\n";
+
+  std::cout << "(HashFight) Inserting into hash table...\n";
+
+//START_TIMER_BLOCK(HashFightBuild)
+
+  //Insert the keys into the hash table
   hashfight::Insert<DeviceAdapter>(insertKeys,
                                    insertVals,
                                    ht);
 
   debug::HashingDebug(ht.entries, "hashTable");
  
+//END_TIMER_BLOCK(HashFightBuild)
 
-  insertKeys.ReleaseResourcesExecution();
-  insertVals.ReleaseResourcesExecution();
+insertKeys.ReleaseResourcesExecution();
+insertVals.ReleaseResourcesExecution();
+#endif
 
-  //Begin query phase
+#if 0
+
   vtkm::cont::ArrayHandle<vtkm::UInt32> queryKeys =
     vtkm::cont::make_ArrayHandle(query_keys, kInputSize);
 
@@ -995,8 +1068,9 @@ int main(int argc, char** argv)
   debug::HashingDebug(queryKeys, "queryKeys");
   debug::HashingDebug(queryVals, "queryVals");
 
+//START_TIMER_BLOCK(HashFightQuery)
 
-  //printf("(HashFight) Querying with %.3f chance of failed queries...\n", failure_rate);
+  printf("(HashFight) Querying with 0.00 chance of failed queries...\n");
   //Query the hash table
   hashfight::Query<DeviceAdapter>(queryKeys,
                                   ht,
@@ -1007,8 +1081,8 @@ int main(int argc, char** argv)
  
 //END_TIMER_BLOCK(HashFightQuery)
 
-  #if 0
-  errors = CheckResults_basic(kInputSize,
+  #if 1
+  int errors = CheckResults_basic(kInputSize,
                                   pairs_basic,
                                   query_keys,
                                   vtkm::cont::ArrayPortalToIteratorBegin(queryVals.GetPortalConstControl()));
@@ -1027,7 +1101,7 @@ int main(int argc, char** argv)
 #endif
   //cudaProfilerStop();
   
-  delete [] number_pool;
+  //delete [] number_pool;
   //delete [] input_keys;
   //delete [] input_vals;
   //delete [] query_keys; 
