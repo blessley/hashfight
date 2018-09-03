@@ -221,6 +221,7 @@ namespace hashfight
     static constexpr vtkm::UInt32 FNV1A_OFFSET = 2166136261;
     static constexpr vtkm::UInt32 FNV1A_PRIME = 16777619;
 
+    #if 0
     const vtkm::UInt8 bytes[4] = {(x >> 24) & 0xFF,
 			          (x >> 16) & 0xFF,
 				  (x >> 8) & 0xFF,
@@ -231,9 +232,9 @@ namespace hashfight
     h = (h ^ bytes[1]) * FNV1A_PRIME;
     h = (h ^ bytes[2]) * FNV1A_PRIME;
     h = (h ^ bytes[3]) * FNV1A_PRIME;
-    
-    //return (FNV1A_OFFSET ^ x) * FNV1A_PRIME;
-    return h;
+    #endif    
+
+    return (FNV1A_OFFSET ^ x) * FNV1A_PRIME;
   }
 
   VTKM_EXEC 
@@ -470,7 +471,7 @@ namespace hashfight
         //if (subTableSize <= 1000000)
           //break;
       }
-      vtkm::UInt32 totalPassKeys = 0;
+      //vtkm::UInt32 totalPassKeys = 0;
       for (vtkm::Id pass = 0; pass < numPasses; pass++)
       {
         chunkStart = (vtkm::UInt32)(pass*chunkSize);
@@ -499,7 +500,7 @@ namespace hashfight
       //The last key to write to an index is the winner of the "hash fight".
       //No atomics are used to handle colliding writes - winner takes all approach.
       ComputeHash hashWorklet(subTableSize, subTableStart, chunkStart, chunkEnd);
-      vtkm::worklet::DispatcherMapField<ComputeHash,DeviceAdapter> hashDispatcher(hashWorklet);
+      vtkm::worklet::DispatcherMapField<ComputeHash> hashDispatcher(hashWorklet);
       hashDispatcher.Invoke(keys, vals, isActive, hash_table.entries);
       
       //std::cout << "Starting CheckForMatches\n";
@@ -536,7 +537,7 @@ namespace hashfight
      
         
       CheckForMatches matchesWorklet(subTableSize, subTableStart, chunkStart, chunkEnd);
-      vtkm::worklet::DispatcherMapField<CheckForMatches, DeviceAdapter> matchDispatcher(matchesWorklet);
+      vtkm::worklet::DispatcherMapField<CheckForMatches> matchDispatcher(matchesWorklet);
       matchDispatcher.Invoke(keys,
 			     hash_table.entries,
                              isActive);
@@ -547,7 +548,7 @@ namespace hashfight
       //Debug: for hash table collision statistics
       vtkm::UInt32 numLosers = Algorithm::Reduce(vtkm::cont::make_ArrayHandleCast<vtkm::UInt32>(isActive), 
 						 (vtkm::UInt32)0);
-      vtkm::UInt32 numWinners = (vtkm::UInt32) numActiveEntries - numLosers;
+      //vtkm::UInt32 numWinners = (vtkm::UInt32) numActiveEntries - numLosers;
       //std::cout << "numLosers = " << numLosers << "\n";
       //std::cout << "numWinners = " << numWinners << "\n";
       //std::cout << "percent placed in table = " << numWinners / (1.0f*numActiveEntries) << "\n";
@@ -619,7 +620,7 @@ namespace hashfight
         //if (subTableSize <= 1000000)
           //break;
       }
-      vtkm::UInt32 totalPassKeys = 0;
+      //vtkm::UInt32 totalPassKeys = 0;
       for (vtkm::Id pass = 0; pass < numPasses; pass++)
       {
         chunkStart = (vtkm::UInt32)(pass*chunkSize);
@@ -633,7 +634,7 @@ namespace hashfight
         //std::cout << "end = " << chunkEnd << "\n";
 
       ProbeForKey queryWorklet(subTableSize, subTableStart, chunkStart, chunkEnd);
-      vtkm::worklet::DispatcherMapField<ProbeForKey, DeviceAdapter> queryDispatcher(queryWorklet);
+      vtkm::worklet::DispatcherMapField<ProbeForKey> queryDispatcher(queryWorklet);
       queryDispatcher.Invoke(query_keys,
 			     query_values,
 			     ht.entries,
@@ -830,9 +831,6 @@ int main(int argc, char** argv)
   config.kInputSize = kInputSize;
   config.space_usage = (float)std::atof(argv[2]);  
 
-  float failure_rate = (float)std::atof(argv[3])/(float)std::atof(argv[4]);
-  int num_trials = (int)std::atoi(argv[5]);
-
   #if 1
   //std::cout << "Loading binary of input keys and values...\n";
   load_binary(input_keys, kInputSize, data_dir + "/inputKeys-"+std::string(argv[1])+"-"+std::string(argv[5])); 
@@ -943,7 +941,6 @@ int main(int argc, char** argv)
 
 #if 1
   using Algorithm = vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter>;
-  using DeviceAdapterTraits = vtkm::cont::DeviceAdapterTraits<DeviceAdapter>;
 
   //std::cout << "========================VTK-m HashFight Hashing"
     //        << "==============================\n";
@@ -971,8 +968,6 @@ int main(int argc, char** argv)
   //Configure and initialize the hash table
   hashfight::HashTable<DeviceAdapter,UInt64HandleType> ht((vtkm::Id)kInputSize,
                                                         (vtkm::FloatDefault)std::atof(argv[2]));
-
-  vtkm::UInt32 tableBytes = (vtkm::UInt32)(ht.size * sizeof(vtkm::UInt32));
 
   //Insert the keys into the hash table 
   //std::cout << "(HashFight) Inserting into hash table...\n";
