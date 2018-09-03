@@ -1,7 +1,7 @@
 NVCC  = nvcc
 ARCH  = sm_35
 STD   = c++11
-FLAGS = -O3 -std=$(STD) -arch=$(ARCH) -Xcompiler -fopenmp --expt-extended-lambda 
+FLAGS = -O3 -std=$(STD) -arch=$(ARCH)
 
 plan:
 	$(NVCC) $(FLAGS) SortSearch.cu -o SortSearch

@@ -17,7 +17,6 @@
 #include <cctype>
 #include <cstdlib>
 #include <fstream>
-#include <iostream>
 #include <sstream>
 #include <iterator>
 #include <unordered_map>
@@ -702,33 +701,8 @@ int main(int argc, char** argv)
   if (argc < 2)
     return -1;
 
-  int deviceCount;
-  cudaGetDeviceCount(&deviceCount);
-  if (deviceCount == 0)
-  {
-    fprintf(stderr, "Error (main): no devices supporting CUDA.\n");
-    exit(1);
-  }
- 
-  cudaDeviceProp prop;
-  if (cudaGetDeviceProperties(&prop, 0) == 0)
-  {
-    //printf("Using device %d:\n", 0);
-    //printf("%s; global mem: %uB; compute v%d.%d; clock: %d kHz; warps: %d; regs per block: %d; shared memory: %uB\n",
-      //     prop.name, (unsigned int)prop.totalGlobalMem, (int)prop.major,
-        //   (int)prop.minor, (int)prop.clockRate, (int)prop.warpSize, (int)prop.regsPerBlock, (unsigned int)prop.sharedMemPerBlock);
-  }
-
-  if (prop.major < 2)
-  {
-    fprintf(stderr, "ERROR: CUDPP hash tables are only supported on "
-                "devices with compute\n  capability 2.0 or greater; "
-                "exiting.\n");
-    exit(1);
-  }
-
   
-  std::string data_dir("/home/users/blessley/hashing-data/");
+  std::string data_dir(argv[6]);
 
 #if 0
   unsigned int* input_keys = NULL;
@@ -737,13 +711,12 @@ int main(int argc, char** argv)
   unsigned int pool_size = 0;
   unsigned int* number_pool = NULL;
   
-
-  const int overall_trials = 10; 
+  const int overall_trials = 1; 
   const int failure_trials = 10; 
   float failure_rate = 0.0f;
-  const unsigned int maxInputSize = 500000000;
-  const unsigned int minInputSize = 25000000;
-  const unsigned int inputStepSize = 25000000;
+  const unsigned int maxInputSize = 1300000000;
+  const unsigned int minInputSize = 550000000;
+  const unsigned int inputStepSize = 50000000;
   //const int numSpaceUsagesToTest = 9;
   //const float kSpaceUsagesToTest[9] = {1.03f, 1.05f, 1.10f, 1.15f, 1.25f, 1.5f, 1.75f, 1.9f, 2.0f};
   for (int trialId = 0; trialId < overall_trials; trialId++)
@@ -804,6 +777,34 @@ int main(int argc, char** argv)
 
 #if 1
 
+  int deviceCount;
+  cudaGetDeviceCount(&deviceCount);
+  if (deviceCount == 0)
+  {
+    fprintf(stderr, "Error (main): no devices supporting CUDA.\n");
+    exit(1);
+  }
+ 
+  cudaDeviceProp prop;
+  if (cudaGetDeviceProperties(&prop, 0) == 0)
+  {
+    //printf("Using device %d:\n", 0);
+    //printf("%s; global mem: %uB; compute v%d.%d; clock: %d kHz; warps: %d; regs per block: %d; shared memory: %uB\n",
+      //     prop.name, (unsigned int)prop.totalGlobalMem, (int)prop.major,
+        //   (int)prop.minor, (int)prop.clockRate, (int)prop.warpSize, (int)prop.regsPerBlock, (unsigned int)prop.sharedMemPerBlock);
+  }
+
+  if (prop.major < 2)
+  {
+    fprintf(stderr, "ERROR: CUDPP hash tables are only supported on "
+                "devices with compute\n  capability 2.0 or greater; "
+                "exiting.\n");
+    exit(1);
+  }
+
+
+
+
   //std::cout << "========================CUDPP Cuckoo Hashing"
     //        << "==============================\n";
   
@@ -834,8 +835,8 @@ int main(int argc, char** argv)
 
   #if 1
   //std::cout << "Loading binary of input keys and values...\n";
-  load_binary(input_keys, kInputSize, data_dir + "inputKeys-"+std::string(argv[1])+"-"+std::string(argv[5])); 
-  load_binary(input_vals, kInputSize, data_dir + "inputVals-"+std::string(argv[1])+"-"+std::string(argv[5])); 
+  load_binary(input_keys, kInputSize, data_dir + "/inputKeys-"+std::string(argv[1])+"-"+std::string(argv[5])); 
+  load_binary(input_vals, kInputSize, data_dir + "/inputVals-"+std::string(argv[1])+"-"+std::string(argv[5])); 
   #endif  
 
   //Save the original input for checking the results.
@@ -887,7 +888,7 @@ int main(int argc, char** argv)
 
   #if 1
   //std::cout << "Loading binary of query keys...\n";
-  load_binary(query_keys, kInputSize, data_dir + "queryKeys-"+std::string(argv[1])+"-"+std::string(argv[3])+"-"+std::string(argv[4])+"-"+std::string(argv[5]));
+  load_binary(query_keys, kInputSize, data_dir + "/queryKeys-"+std::string(argv[1])+"-"+std::string(argv[3])+"-"+std::string(argv[4])+"-"+std::string(argv[5]));
   #endif
  
   CUDA_SAFE_CALL(cudaMemcpy(d_test_keys, query_keys,

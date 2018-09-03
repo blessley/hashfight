@@ -1,16 +1,15 @@
 #!/bin/bash -l
 
-HOME="/home/users/blessley"
-BIN="${HOME}/HashFight"
-DATA="${HOME}/hashing-data"
-TIMES="${HOME}/hashing-timings"
+#SET THESE RELATIVE TO YOUR SYSTEM:
+hashfight_SRC="/home/users/blessley/HashFight" #HashFight source dir
+timings_OUT_DIR="/home/users/blessley/hashing-timings" #dir for output timing files
 
 #sizes='500000000 1048576 134217728
 #factors='1.03 2.00 1.50 1.25 1.75 1.10 1.15 1.35 1.90'
 factors='1.03'
 #factors='2.00'
 sizes='325000000'
-failure='5'
+failure='0'
 failure_trials=10
 all_trials=1
 
@@ -18,18 +17,18 @@ all_trials=1
 #run through all the sizes for each factor-failure configuration:
 for l in $factors; do #load factors
   for f in $failure; do #failure rates
-    filename_config_times="${TIMES}/${l}-${f}-${failure_trials}"
+    filename_config_times="${timings_OUT_DIR}/${l}-${f}-${failure_trials}"
     touch $filename_config_times
-    for k in {25000000..500000000..25000000}; do #num key-val pairs
+    for k in {50000000..1450000000..50000000}; do #num key-val pairs
     #for k in $sizes; do #num key-val pairs
-      filename_trial_times="${TIMES}/${k}-${l}-${f}-${failure_trials}"
+      filename_trial_times="${timings_OUT_DIR}/${k}-${l}-${f}-${failure_trials}"
       if [ -f "$filename_trial_times" ]; then
         rm $filename_trial_times
       fi
       touch $filename_trial_times
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${BIN}/run-hashfight.sh $k $l $f $failure_trials $counter >> $filename_trial_times 2>&1
+        ${hashfight_SRC}/run-hashfight.sh $k $l $f $failure_trials $counter >> $filename_trial_times 2>&1
         ((counter++))
       done
       cat $filename_trial_times | \
@@ -46,18 +45,18 @@ done
 #run through all the factors for each size-failure configuration:
 for k in $sizes; do #num key-val pairs
   for f in $failure; do #failure rates
-    filename_config_times="${TIMES}/${k}-${f}-${failure_trials}"
+    filename_config_times="${timings_OUT_DIR}/${k}-${f}-${failure_trials}"
     touch $filename_config_times
     #for k in {25000000..500000000..25000000}; do #num key-val pairs
     for l in $factors; do #load factors
-      filename_trial_times="${TIMES}/${k}-${l}-${f}-${failure_trials}"
+      filename_trial_times="${timings_OUT_DIR}/${k}-${l}-${f}-${failure_trials}"
       if [ -f "$filename_trial_times" ]; then
         rm $filename_trial_times
       fi
       touch $filename_trial_times
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${BIN}/run-hashfight.sh $k $l $f $failure_trials $counter >> $filename_trial_times 2>&1
+        ${hashfight_SRC}/run-hashfight.sh $k $l $f $failure_trials $counter >> $filename_trial_times 2>&1
         ((counter++))
       done
       cat $filename_trial_times | \
@@ -73,18 +72,18 @@ COMMENT
 #run through all the failures for each size-factor configuration:
 for k in $sizes; do #num key-val pairs
   for l in $factors; do #load factor
-    filename_config_times="${TIMES}/${k}-${l}"
+    filename_config_times="${timings_OUT_DIR}/${k}-${l}"
     touch $filename_config_times
     #for k in {25000000..500000000..25000000}; do #num key-val pairs
     for f in {0..9}; do #failure rates
-      filename_trial_times="${TIMES}/${k}-${l}-${f}-${failure_trials}"
+      filename_trial_times="${timings_OUT_DIR}/${k}-${l}-${f}-${failure_trials}"
       if [ -f "$filename_trial_times" ]; then
         rm $filename_trial_times
       fi
       touch $filename_trial_times
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${BIN}/run-hashfight.sh $k $l $f $failure_trials $counter >> $filename_trial_times 2>&1
+        ${hashfight_SRC}/run-hashfight.sh $k $l $f $failure_trials $counter >> $filename_trial_times 2>&1
         ((counter++))
       done
       cat $filename_trial_times | \
