@@ -1,4 +1,4 @@
-#!/bin/bash -l
+#!/bin/bash
 
 #hashfight build dir
 BIN="/home/users/blessley/build-hash-fight"

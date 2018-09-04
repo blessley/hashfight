@@ -845,6 +845,8 @@ int main(int argc, char** argv)
   config.kInputSize = kInputSize;
   config.space_usage = (float)std::atof(argv[2]);  
 
+  std::cout << argv[1] << " pairs; " << argv[2] << " load factor; " 
+            << std::atof(argv[3])/std::atoi(argv[4]) << " query failure rate\n"; 
   #if 1
   std::cout << "Loading binary of input keys...\n";
   load_binary(input_keys, kInputSize, data_dir + "/inputKeys-"+std::string(argv[1])+"-"+std::string(argv[5])); 
@@ -901,7 +903,7 @@ int main(int argc, char** argv)
                     "least compute version 2.0\n");
   }
 
-  std::cout << "(CuckooHash) Inserting into hash table...\n";
+  //std::cout << "(CuckooHash) Inserting into hash table...\n";
  
 START_TIMER_BLOCK(CuckooInsert) 
   result = cudppHashInsert(hash_table_handle, d_test_keys, d_test_vals, kInputSize);

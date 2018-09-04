@@ -1,4 +1,4 @@
-#!/bin/bash -l
+#!/bin/bash
 
 #SET THESE RELATIVE TO YOUR SYSTEM:
 hashfight_SRC="/home/users/blessley/HashFight" #HashFight source dir
