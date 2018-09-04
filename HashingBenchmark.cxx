@@ -461,13 +461,14 @@ namespace hashfight
       
       hash_table.sub_table_starts.push_back(subTableSize); 
 
-      vtkm::UInt32 minSize = 250000000;
+      //vtkm::UInt32 minSize = 250000000;
+      vtkm::UInt32 minSize = subTableSize;
       vtkm::Id numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       vtkm::UInt32 chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);;
       //std::cout << "numPasses = " << numPasses << "\n";
       //std::cout << "chunkSize = " << chunkSize << "\n"; 
       vtkm::UInt32 chunkStart = 0, chunkEnd = 0;
-      if (subTableSize < minSize)
+      if (subTableSize <= minSize)
       {
         numPasses = 1;
         //if (subTableSize <= 1000000)
@@ -478,7 +479,7 @@ namespace hashfight
       {
         chunkStart = (vtkm::UInt32)(pass*chunkSize);
         chunkEnd = (vtkm::UInt32)vtkm::Min((vtkm::Id)subTableSize, (pass+1)*chunkSize);
-        if (subTableSize < minSize)
+        if (subTableSize <= minSize)
         {
           chunkStart = 0;
           chunkEnd = subTableSize;
@@ -525,13 +526,13 @@ namespace hashfight
       #if 1
       numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);;
-      if (subTableSize < minSize)
+      if (subTableSize <= minSize)
         numPasses = 1;
       for (vtkm::Id pass = 0; pass < numPasses; pass++)
       {
         chunkStart = (vtkm::UInt32)(pass*chunkSize);
         chunkEnd = (vtkm::UInt32)vtkm::Min((vtkm::Id)subTableSize, (pass+1)*chunkSize);
-        if (subTableSize < minSize)
+        if (subTableSize <= minSize)
         {
           chunkStart = 0;
           chunkEnd = subTableSize;
@@ -616,7 +617,8 @@ namespace hashfight
 
       //std::cout << "Starting ProbeForKey\n";
 
-      const vtkm::UInt32 minSize = 250000000;
+      //const vtkm::UInt32 minSize = 250000000;
+      const vtkm::UInt32 minSize = subTableSize;
       vtkm::Id numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       const vtkm::UInt32 chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);
       //std::cout << "numPasses = " << numPasses << "\n";
@@ -625,7 +627,7 @@ namespace hashfight
       //const vtkm::UInt32 minSize = subTableSize;
       //vtkm::UInt32 numActiveEntries = (vtkm::UInt32)(subTableSize / ht.size_factor);
       //std::cout << "numActiveEntries = " << numActiveEntries << "\n";
-      if (subTableSize < minSize)
+      if (subTableSize <= minSize)
       {
         numPasses = 1;
         //if (subTableSize <= 1000000)
@@ -636,7 +638,7 @@ namespace hashfight
       {
         chunkStart = (vtkm::UInt32)(pass*chunkSize);
         chunkEnd = (vtkm::UInt32)vtkm::Min((vtkm::Id)subTableSize, (pass+1)*chunkSize);
-        if (subTableSize < minSize)
+        if (subTableSize <= minSize)
         {
           chunkStart = 0;
           chunkEnd = subTableSize;
