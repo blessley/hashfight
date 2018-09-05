@@ -461,8 +461,8 @@ namespace hashfight
       
       hash_table.sub_table_starts.push_back(subTableSize); 
 
-      //vtkm::UInt32 minSize = 250000000;
-      vtkm::UInt32 minSize = subTableSize;
+      vtkm::UInt32 minSize = 994000000;
+      //vtkm::UInt32 minSize = subTableSize;
       vtkm::Id numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       vtkm::UInt32 chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);;
       //std::cout << "numPasses = " << numPasses << "\n";
@@ -617,8 +617,8 @@ namespace hashfight
 
       //std::cout << "Starting ProbeForKey\n";
 
-      //const vtkm::UInt32 minSize = 250000000;
-      const vtkm::UInt32 minSize = subTableSize;
+      const vtkm::UInt32 minSize = 994000000;
+      //const vtkm::UInt32 minSize = subTableSize;
       vtkm::Id numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       const vtkm::UInt32 chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);
       //std::cout << "numPasses = " << numPasses << "\n";
