@@ -731,7 +731,7 @@ int main(int argc, char** argv)
   const int overall_trials = 1; 
   const int failure_trials = 10; 
   float failure_rate = 0.0f;
-  const unsigned int maxInputSize = 1300000000;
+  const unsigned int maxInputSize = 1450000000;
   const unsigned int minInputSize = 550000000;
   const unsigned int inputStepSize = 50000000;
   //const int numSpaceUsagesToTest = 9;
@@ -819,11 +819,10 @@ int main(int argc, char** argv)
     exit(1);
   }
 
+  vtkm::Float64 cudppInsertTime = 0.0, cudppQueryTime = 0.0;
 
-
-
-  std::cout << "========================CUDPP Cuckoo Hashing"
-            << "==============================\n";
+  //std::cout << "========================CUDPP Cuckoo Hashing"
+    //       << "==============================\n";
   
   unsigned int kInputSize = (unsigned int)std::atoi(argv[1]);
   unsigned int* input_keys = new unsigned int[kInputSize];
@@ -847,13 +846,13 @@ int main(int argc, char** argv)
   config.kInputSize = kInputSize;
   config.space_usage = (float)std::atof(argv[2]);  
 
-  std::cout << argv[1] << " pairs; " << argv[2] << " load factor; " 
-            << std::atof(argv[3])/std::atoi(argv[4]) << " query failure rate\n"; 
+  //std::cout << argv[1] << " pairs; " << argv[2] << " load factor; " 
+    //        << std::atof(argv[3])/std::atoi(argv[4]) << " query failure rate\n"; 
   #if 1
-  std::cout << "Loading binary of input keys...\n";
+  //std::cout << "Loading binary of input keys...\n";
   load_binary(input_keys, kInputSize, data_dir + "/inputKeys-"+std::string(argv[1])+"-"+std::string(argv[5])); 
 
-  std::cout << "Loading binary of input values...\n";
+  //std::cout << "Loading binary of input values...\n";
   load_binary(input_vals, kInputSize, data_dir + "/inputVals-"+std::string(argv[1])+"-"+std::string(argv[5])); 
   #endif  
 
@@ -861,7 +860,7 @@ int main(int argc, char** argv)
   #if 1
   //Generate a set of queries comprised of keys both
   //from and not from the input.
-  std::cout << "Loading binary of query keys...\n";
+  //std::cout << "Loading binary of query keys...\n";
   load_binary(query_keys, kInputSize, data_dir + "/queryKeys-"+std::string(argv[1])+"-"+std::string(argv[3])+"-"+std::string(argv[4])+"-"+std::string(argv[5]));
   #endif
 
@@ -907,10 +906,12 @@ int main(int argc, char** argv)
 
   //std::cout << "(CuckooHash) Inserting into hash table...\n";
  
-START_TIMER_BLOCK(CuckooInsert) 
-  result = cudppHashInsert(hash_table_handle, d_test_keys, d_test_vals, kInputSize);
+//START_TIMER_BLOCK(CuckooInsert) 
+ 
+  vtkm::cont::Timer<DeviceAdapter> cudppInsertTimer;
+ result = cudppHashInsert(hash_table_handle, d_test_keys, d_test_vals, kInputSize);
   cudaThreadSynchronize();  
-END_TIMER_BLOCK(CuckooInsert) 
+  cudppInsertTime = cudppInsertTimer.GetElapsedTime();
 
   if (result != CUDPP_SUCCESS)
   {
@@ -931,13 +932,16 @@ END_TIMER_BLOCK(CuckooInsert)
     //       "failed queries...\n", failure_rate);
 
 
-START_TIMER_BLOCK(CuckooQuery) 
+//START_TIMER_BLOCK(CuckooQuery) 
+  
+  vtkm::cont::Timer<DeviceAdapter> cudppQueryTimer;
   result = cudppHashRetrieve(hash_table_handle,
                                d_test_keys, d_test_vals,
                                kInputSize); 
   cudaThreadSynchronize();
-END_TIMER_BLOCK(CuckooQuery)
- 
+//END_TIMER_BLOCK(CuckooQuery)
+  cudppQueryTime = cudppQueryTimer.GetElapsedTime(); 
+
   if (result != CUDPP_SUCCESS)
     fprintf(stderr, "Error in cudppHashRetrieve call in"
                                 "testHashTable\n");
@@ -978,8 +982,8 @@ END_TIMER_BLOCK(CuckooQuery)
 #if 1
   using Algorithm = vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter>;
 
-  std::cout << "========================VTK-m HashFight Hashing"
-            << "==============================\n";
+  //std::cout << "========================VTK-m HashFight Hashing"
+    //        << "==============================\n";
   //std::cout << "Running on device adapter: " << DeviceAdapterTraits::GetName() << "\n";
 
   vtkm::cont::ArrayHandle<vtkm::UInt32> insertKeys =
@@ -1000,12 +1004,12 @@ END_TIMER_BLOCK(CuckooQuery)
                                                         (vtkm::FloatDefault)std::atof(argv[2]));
   //Insert the keys into the hash table 
   //std::cout << "(HashFight) Inserting into hash table...\n";
-  vtkm::Float64 elapsedTime;
-  elapsedTime = hashfight::Insert<DeviceAdapter>(insertKeys,
+  vtkm::Float64 hfInsertTime;
+  hfInsertTime = hashfight::Insert<DeviceAdapter>(insertKeys,
                                    insertVals,
                                    ht);
 
-  std::cout << "HashFightInsert : elapsed : " << elapsedTime << "\n";
+  //std::cout << "HashFightInsert : elapsed : " << elapsedTime << "\n";
   debug::HashingDebug(ht.entries, "hashTable");
  
   insertKeys.ReleaseResourcesExecution();
@@ -1026,11 +1030,12 @@ END_TIMER_BLOCK(CuckooQuery)
 
   //printf("(HashFight) Querying with %.3f chance of failed queries...\n", failure_rate);
   //Query the hash table
-  elapsedTime = hashfight::Query<DeviceAdapter>(queryKeys,
+  vtkm::Float64 hfQueryTime;
+  hfQueryTime = hashfight::Query<DeviceAdapter>(queryKeys,
                                   ht,
                                   queryVals);
 
-  std::cout << "HashFightQuery : elapsed : " << elapsedTime << "\n";
+  //std::cout << "HashFightQuery : elapsed : " << elapsedTime << "\n";
   debug::HashingDebug(queryKeys, "queryKeys");
   debug::HashingDebug(queryVals, "queryVals");
  
@@ -1055,6 +1060,9 @@ END_TIMER_BLOCK(CuckooQuery)
 #endif
   //cudaProfilerStop();
   
+  std::cout << hfInsertTime << "," << hfQueryTime << ","
+            << cudppInsertTime << "," << cudppQueryTime << "\n";
+
   delete [] number_pool;
   //delete [] input_keys;
   //delete [] input_vals;
