@@ -876,7 +876,7 @@ int main(int argc, char** argv)
   unsigned int* d_test_keys = NULL, *d_test_vals = NULL;
 
   //use nvprof flag: --profile-from-start off
-  //cudaProfilerStart();
+  cudaProfilerStart();
 
   //Begin insertion phase
   
@@ -1058,7 +1058,7 @@ int main(int argc, char** argv)
   insertVals.ReleaseResources();
 
 #endif
-  //cudaProfilerStop();
+  cudaProfilerStop();
   
   std::cout << hfInsertTime << "," << hfQueryTime << ","
             << cudppInsertTime << "," << cudppQueryTime << "\n";
