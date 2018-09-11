@@ -877,7 +877,7 @@ int main(int argc, char** argv)
   unsigned int* d_test_keys = NULL, *d_test_vals = NULL;
 
   //use nvprof flag: --profile-from-start off
-  //cudaProfilerStart();
+  cudaProfilerStart();
 
   //Begin insertion phase
   
@@ -1053,7 +1053,7 @@ END_TIMER_BLOCK(CuckooQuery)
   insertVals.ReleaseResources();
 
 #endif
-  //cudaProfilerStop();
+  cudaProfilerStop();
   
   delete [] number_pool;
   //delete [] input_keys;
