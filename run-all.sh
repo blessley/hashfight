@@ -2,6 +2,8 @@
 
 #SET THESE RELATIVE TO YOUR SYSTEM:
 hashfight_SRC="/home/users/blessley/HashFight" #HashFight source dir
+hashfight_BUILD="/home/users/blessley/build-hash-fight" #HashFight source dir
+hashfight_DATA="/home/users/blessley/hashing-data" #HashFight source dir
 timings_OUT_DIR="/home/users/blessley/hashing-timings" #dir for output timing files
 
 #sizes='500000000 1048576 134217728
@@ -28,7 +30,7 @@ for l in $factors; do #load factors
       touch $filename_trial_times
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${hashfight_SRC}/run-hashfight.sh $k $l $f $failure_trials $counter >> $filename_trial_times 2>&1
+        ${hashfight_BUILD}/Hashing_CUDA $k $l $f $failure_trials $counter $hashfight_DATA >> $filename_trial_times 2>&1
         ((counter++))
       done
       cat $filename_trial_times | \

@@ -5,11 +5,7 @@
 #define VTKM_DEVICE_ADAPTER VTKM_DEVICE_ADAPTER_SERIAL
 #endif
 
-#include <cudpp_hash.h>
-#include <cuda_util.h>
-#include <cuda_profiler_api.h>
-#include <mt19937ar.h>
-#include <cuda_runtime_api.h>
+#include "mt19937ar.h"
 #include "random_numbers.h"
 
 #include <iostream>
@@ -17,16 +13,12 @@
 #include <cctype>
 #include <cstdlib>
 #include <fstream>
-#include <iostream>
 #include <sstream>
 #include <iterator>
 #include <unordered_map>
 #include <sstream>
 #include <string>
 #include <vector>
-
-#include <thrust/device_vector.h>
-#include <thrust/sort.h>
 
 #include <vtkm/cont/ArrayHandle.h>
 #include <vtkm/cont/ArrayHandleCast.h>
@@ -41,7 +33,7 @@
 //#include <vtkm/worklet/HashFight.h>
 #include <vtkm/worklet/DispatcherMapField.h>
 #include <vtkm/worklet/WorkletMapField.h>
-
+#include <vtkm/Pair.h>
 
 typedef VTKM_DEFAULT_DEVICE_ADAPTER_TAG DeviceAdapter;
 typedef vtkm::cont::ArrayHandle<vtkm::Id> IdHandleType;
@@ -117,6 +109,24 @@ HashingDebug(
 } // namespace debug
 
 
+template<typename PairType>
+void GenerateFunctions(const vtkm::Id &N,
+                       std::vector<PairType> &constants) 
+{
+  static constexpr vtkm::UInt32 kPrimeDivisor = 4294967291;
+ 
+  //Generate a set of hash function constants for this build attempt.
+  for (vtkm::Id i = 0 ; i < N; i++) 
+  {
+    vtkm::UInt32 new_a = (vtkm::UInt32)genrand_int32() % kPrimeDivisor;
+    PairType ab;
+    ab.first = (1 > new_a ? 1 : new_a);
+    ab.second = (vtkm::UInt32)genrand_int32() % kPrimeDivisor;
+    constants.push_back(ab);
+  }
+}
+
+
 template <typename T>
 void dump_binary(const T * data,
                  const size_t length,
@@ -146,13 +156,16 @@ namespace hashfight
   struct HashTable
   { 
     using Algorithm = vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter>;
- 
+    using PairType = vtkm::Pair<vtkm::UInt32, vtkm::UInt32>; 
+
     static constexpr vtkm::FloatDefault subTableSizeFactor = 1.575;
     //static constexpr vtkm::FloatDefault subTableSizeFactor = 1.4935;
     static constexpr vtkm::Id maxNumSubTables = 25;
+    static constexpr vtkm::Id numHashFunctions = 6;
 
     TableType entries;
     std::vector<vtkm::UInt32> sub_table_starts;
+    vtkm::cont::ArrayHandle<PairType> hash_constants;
     vtkm::FloatDefault size_factor; 
     vtkm::Id size;
     vtkm::UInt32 num_keys;
@@ -215,6 +228,13 @@ namespace hashfight
     }
   };
 
+  VTKM_EXEC 
+  inline vtkm::UInt32 UniversalHash(const vtkm::Pair<vtkm::UInt32,vtkm::UInt32> &constants,
+                                    const vtkm::UInt32 &x)
+  { 
+    static constexpr vtkm::UInt32 UNIVERSAL_PRIME = 4294967291;
+    return ((constants.first ^ x) + constants.second) % UNIVERSAL_PRIME;
+  }
 
   VTKM_EXEC 
   inline vtkm::UInt32 FNV1aHash(const vtkm::UInt32 &x)
@@ -222,6 +242,7 @@ namespace hashfight
     static constexpr vtkm::UInt32 FNV1A_OFFSET = 2166136261;
     static constexpr vtkm::UInt32 FNV1A_PRIME = 16777619;
 
+    #if 0
     const vtkm::UInt8 bytes[4] = {(x >> 24) & 0xFF,
 			          (x >> 16) & 0xFF,
 				  (x >> 8) & 0xFF,
@@ -232,9 +253,9 @@ namespace hashfight
     h = (h ^ bytes[1]) * FNV1A_PRIME;
     h = (h ^ bytes[2]) * FNV1A_PRIME;
     h = (h ^ bytes[3]) * FNV1A_PRIME;
-    
-    //return (FNV1A_OFFSET ^ x) * FNV1A_PRIME;
-    return h;
+    #endif    
+
+    return (FNV1A_OFFSET ^ x) * FNV1A_PRIME;
   }
 
   VTKM_EXEC 
@@ -262,6 +283,7 @@ namespace hashfight
    * no atomics are used, the last thread to write it's entry into the index
    * is the winner of the "hash fight", a non-deterministic scatter process. 
    */
+  template <typename Device>
   class ComputeHash : public vtkm::worklet::WorkletMapField
   {
   private:
@@ -271,6 +293,11 @@ namespace hashfight
     vtkm::UInt32 ChunkStart;
     vtkm::UInt32 ChunkEnd;
 
+    vtkm::Id HashFunctionId;
+    using PairType = vtkm::Pair<vtkm::UInt32, vtkm::UInt32>;
+    using InputPortalType = typename vtkm::cont::ArrayHandle<PairType>::template ExecutionTypes<Device>::PortalConst;
+    InputPortalType Constants;
+
   public:
     typedef void ControlSignature(FieldIn<>, FieldIn<>, WholeArrayIn<>, WholeArrayInOut<>);
     typedef void ExecutionSignature(WorkIndex, _1, _2, _3, _4);
@@ -279,8 +306,10 @@ namespace hashfight
     ComputeHash(const unsigned int &size, 
                 const unsigned int &start,
                 const unsigned int &c_start,
-                const unsigned int &c_end) 
-      : SubTableSize(size), SubTableStart(start)
+                const unsigned int &c_end,
+                const vtkm::Id &funcId,
+                InputPortalType constants) 
+      : SubTableSize(size), SubTableStart(start), HashFunctionId(funcId), Constants(constants)
       {
         ChunkStart = c_start + SubTableStart;
         ChunkEnd = c_end + SubTableStart;
@@ -298,7 +327,8 @@ namespace hashfight
       if (isActive.Get(index))
       {
         //vtkm::UInt32 h = FNV1aHash(key);
-        vtkm::UInt32 h = MurmurHash3(key);
+        //vtkm::UInt32 h = MurmurHash3(key);
+        vtkm::UInt32 h = UniversalHash(Constants.Get(HashFunctionId), key); 
         h = (h % SubTableSize) + SubTableStart;
         if (h >= ChunkStart && h < ChunkEnd)
           hashTable.Set(h, ((vtkm::UInt64)(key) << 32) + value);
@@ -311,6 +341,7 @@ namespace hashfight
   //face is internal, then a value should not be assigned to the
   //face in the output array handle of face vertices; only external
   //faces should have a vector not equal to <-1,-1,-1>
+  template<typename Device>
   class CheckForMatches : public vtkm::worklet::WorkletMapField
   {
   private:
@@ -319,6 +350,11 @@ namespace hashfight
  
     vtkm::UInt32 ChunkStart;
     vtkm::UInt32 ChunkEnd;
+
+    vtkm::Id HashFunctionId;
+    using PairType = vtkm::Pair<vtkm::UInt32, vtkm::UInt32>;
+    using InputPortalType = typename vtkm::cont::ArrayHandle<PairType>::template ExecutionTypes<Device>::PortalConst;
+    InputPortalType Constants;
  
   public:
     typedef void ControlSignature(FieldIn<>, WholeArrayIn<>, WholeArrayInOut<>);
@@ -328,8 +364,10 @@ namespace hashfight
     CheckForMatches(const unsigned int &size, 
                 const unsigned int &start,
                 const unsigned int &c_start,
-                const unsigned int &c_end) 
-      : SubTableSize(size), SubTableStart(start)
+                const unsigned int &c_end,
+                const vtkm::Id &func_id,
+                InputPortalType constants) 
+      : SubTableSize(size), SubTableStart(start), HashFunctionId(func_id), Constants(constants)
       {
         ChunkStart = c_start + SubTableStart;
         ChunkEnd = c_end + SubTableStart;
@@ -346,7 +384,8 @@ namespace hashfight
       if (isActive.Get(index))
       {    
         //vtkm::UInt32 h = FNV1aHash(key); 
-        vtkm::UInt32 h = MurmurHash3(key);
+        //vtkm::UInt32 h = MurmurHash3(key);
+        vtkm::UInt32 h = UniversalHash(Constants.Get(HashFunctionId), key);
         h = (h % SubTableSize) + SubTableStart;
         if (h >= ChunkStart && h < ChunkEnd)
         {
@@ -358,7 +397,7 @@ namespace hashfight
     }
   };
 
-
+  template<typename Device>
   class ProbeForKey : public vtkm::worklet::WorkletMapField
   {
   private:
@@ -367,7 +406,12 @@ namespace hashfight
  
     vtkm::UInt32 ChunkStart;
     vtkm::UInt32 ChunkEnd;
- 
+  
+    vtkm::Id HashFunctionId;
+    using PairType = vtkm::Pair<vtkm::UInt32, vtkm::UInt32>;
+    using InputPortalType = typename vtkm::cont::ArrayHandle<PairType>::template ExecutionTypes<Device>::PortalConst;
+    InputPortalType Constants;
+
   public:
     typedef void ControlSignature(FieldIn<>, FieldInOut<>, WholeArrayIn<>, WholeArrayInOut<>);
     typedef void ExecutionSignature(WorkIndex, _1, _2, _3, _4);
@@ -376,8 +420,10 @@ namespace hashfight
     ProbeForKey(const unsigned int &size, 
                 const unsigned int &start,
                 const unsigned int &c_start,
-                const unsigned int &c_end) 
-      : SubTableSize(size), SubTableStart(start)
+                const unsigned int &c_end,
+                const vtkm::Id &func_id,
+                InputPortalType constants) 
+      : SubTableSize(size), SubTableStart(start), HashFunctionId(func_id), Constants(constants)
       {
         ChunkStart = c_start + SubTableStart;
         ChunkEnd = c_end + SubTableStart;
@@ -395,7 +441,8 @@ namespace hashfight
       if (isActive.Get(index))
       {    
         //vtkm::UInt32 h = FNV1aHash(key);
-        vtkm::UInt32 h = MurmurHash3(key);
+        //vtkm::UInt32 h = MurmurHash3(key);
+        vtkm::UInt32 h = UniversalHash(Constants.Get(HashFunctionId), key);
         h = (h % SubTableSize) + SubTableStart; 
         if (h >= ChunkStart && h < ChunkEnd)
         {
@@ -421,13 +468,15 @@ namespace hashfight
    *
   */
   template<typename DeviceAdapter>
-  void 
+  vtkm::Float64 
   Insert(const UInt32HandleType &keys,
          const UInt32HandleType &vals,
          struct HashTable<DeviceAdapter,UInt64HandleType> &hash_table)
   {
     
     using Algorithm = vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter>;
+
+    vtkm::Float64 elapsedTime = 0;
 
     vtkm::UInt32 numActiveEntries = hash_table.num_keys;
     
@@ -436,6 +485,7 @@ namespace hashfight
     ConstBitHandleType allActive(vtkm::UInt8(1), numActiveEntries);
     Algorithm::Copy(allActive, isActive);
 
+    vtkm::Id hashFunctionId = 0;
     vtkm::UInt32 subTableStart = 0;
     vtkm::UInt32 subTableSize = (vtkm::UInt32)(hash_table.size_factor * numActiveEntries);   
     vtkm::Id numLoops = 0;
@@ -449,34 +499,36 @@ namespace hashfight
     while (numActiveEntries > 0)
     {
  
-      //std::cerr << "=============Loop " << numLoops << " =======================\n";
-      //std::cerr << "numActiveEntries = " << numActiveEntries << "\n";
-      //std::cerr << "subtableSize = " << subTableSize << "\n";
-      //std::cerr << "subtableStart = " << subTableStart << "\n";
+      std::cerr << "=============Loop " << numLoops << " =======================\n";
+      std::cerr << "numActiveEntries = " << numActiveEntries << "\n";
+      std::cerr << "subtableSize = " << subTableSize << "\n";
+      std::cerr << "subtableStart = " << subTableStart << "\n";
  
       //std::cout << "Starting ComputeHash\n";
 
+      hashFunctionId = numLoops % hash_table.numHashFunctions;
       
       hash_table.sub_table_starts.push_back(subTableSize); 
 
-      vtkm::UInt32 minSize = 250000000;
+      //vtkm::UInt32 minSize = 994000000;
+      vtkm::UInt32 minSize = subTableSize;
       vtkm::Id numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       vtkm::UInt32 chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);;
       //std::cout << "numPasses = " << numPasses << "\n";
       //std::cout << "chunkSize = " << chunkSize << "\n"; 
       vtkm::UInt32 chunkStart = 0, chunkEnd = 0;
-      if (subTableSize < minSize)
+      if (subTableSize <= minSize)
       {
         numPasses = 1;
         //if (subTableSize <= 1000000)
           //break;
       }
-      vtkm::UInt32 totalPassKeys = 0;
+      //vtkm::UInt32 totalPassKeys = 0;
       for (vtkm::Id pass = 0; pass < numPasses; pass++)
       {
         chunkStart = (vtkm::UInt32)(pass*chunkSize);
         chunkEnd = (vtkm::UInt32)vtkm::Min((vtkm::Id)subTableSize, (pass+1)*chunkSize);
-        if (subTableSize < minSize)
+        if (subTableSize <= minSize)
         {
           chunkStart = 0;
           chunkEnd = subTableSize;
@@ -499,10 +551,14 @@ namespace hashfight
       //Hash each key to an index in the hash table, with collisions likely occuring.
       //The last key to write to an index is the winner of the "hash fight".
       //No atomics are used to handle colliding writes - winner takes all approach.
-      ComputeHash hashWorklet(subTableSize, subTableStart, chunkStart, chunkEnd);
-      vtkm::worklet::DispatcherMapField<ComputeHash,DeviceAdapter> hashDispatcher(hashWorklet);
+      ComputeHash<DeviceAdapter> hashWorklet(subTableSize, subTableStart, 
+                              chunkStart, chunkEnd,
+                              hashFunctionId, hash_table.hash_constants.PrepareForInput(DeviceAdapter()));
+      vtkm::worklet::DispatcherMapField<ComputeHash<DeviceAdapter> > hashDispatcher(hashWorklet);
+      vtkm::cont::Timer<DeviceAdapter> scatterTimer;
       hashDispatcher.Invoke(keys, vals, isActive, hash_table.entries);
-      
+      elapsedTime += scatterTimer.GetElapsedTime();      
+
       //std::cout << "Starting CheckForMatches\n";
 
       //Check for the winners of the hash fight.
@@ -521,13 +577,13 @@ namespace hashfight
       #if 1
       numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);;
-      if (subTableSize < minSize)
+      if (subTableSize <= minSize)
         numPasses = 1;
       for (vtkm::Id pass = 0; pass < numPasses; pass++)
       {
         chunkStart = (vtkm::UInt32)(pass*chunkSize);
         chunkEnd = (vtkm::UInt32)vtkm::Min((vtkm::Id)subTableSize, (pass+1)*chunkSize);
-        if (subTableSize < minSize)
+        if (subTableSize <= minSize)
         {
           chunkStart = 0;
           chunkEnd = subTableSize;
@@ -536,21 +592,27 @@ namespace hashfight
         //std::cout << "end = " << chunkEnd << "\n";
      
         
-      CheckForMatches matchesWorklet(subTableSize, subTableStart, chunkStart, chunkEnd);
-      vtkm::worklet::DispatcherMapField<CheckForMatches, DeviceAdapter> matchDispatcher(matchesWorklet);
+      CheckForMatches<DeviceAdapter> matchesWorklet(subTableSize, subTableStart, 
+						    chunkStart, chunkEnd,
+						    hashFunctionId, hash_table.hash_constants.PrepareForInput(DeviceAdapter()));
+      vtkm::worklet::DispatcherMapField<CheckForMatches<DeviceAdapter> > matchDispatcher(matchesWorklet);
+      vtkm::cont::Timer<DeviceAdapter> gatherTimer;
       matchDispatcher.Invoke(keys,
 			     hash_table.entries,
                              isActive);
+      elapsedTime += gatherTimer.GetElapsedTime();
      }
      #endif
       debug::HashingDebug(isActive, "isActive");
      
       //Debug: for hash table collision statistics
+      vtkm::cont::Timer<DeviceAdapter> reduceTimer;
       vtkm::UInt32 numLosers = Algorithm::Reduce(vtkm::cont::make_ArrayHandleCast<vtkm::UInt32>(isActive), 
 						 (vtkm::UInt32)0);
+      elapsedTime += reduceTimer.GetElapsedTime();
       vtkm::UInt32 numWinners = (vtkm::UInt32) numActiveEntries - numLosers;
-      //std::cout << "numLosers = " << numLosers << "\n";
-      //std::cout << "numWinners = " << numWinners << "\n";
+      std::cout << "numLosers = " << numLosers << "\n";
+      std::cout << "numWinners = " << numWinners << "\n";
       std::cout << "percent placed in table = " << numWinners / (1.0f*numActiveEntries) << "\n";
  
       numActiveEntries = numLosers;  
@@ -559,25 +621,28 @@ namespace hashfight
       totalSpaceUsed += subTableSize;
       numLoops++;
 
-      //std::cerr << "==================================================\n";
+      std::cerr << "==================================================\n";
 
     }  //End of while loop
     
     //std::cout << "Total space used: " << totalSpaceUsed << "\n";
     //std::cout << "Total allocated space: " << hash_table.size << "\n";
 
+    return elapsedTime;
   } //hashfight::Insert
 
 
   
   template<typename DeviceAdapter>
-  void 
+  vtkm::Float64 
   Query(const UInt32HandleType &query_keys,
         const struct HashTable<DeviceAdapter,UInt64HandleType> &ht,
         UInt32HandleType &query_values)
   {
  
     using Algorithm = vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter>;
+
+    vtkm::Float64 elapsedTime = 0;
 
     //vtkm::Id numActiveEntries = query_keys.GetNumberOfValues();
     vtkm::Id numSubTables = (vtkm::Id)ht.sub_table_starts.size();
@@ -589,6 +654,7 @@ namespace hashfight
     ConstBitHandleType allActive(vtkm::UInt8(1), query_keys.GetNumberOfValues());
     Algorithm::Copy(allActive, isActive);
 
+    vtkm::Id hashFunctionId = 0;
     vtkm::UInt32 subTableStart = 0;
     vtkm::UInt32 subTableSize = ht.sub_table_starts[0];   
     vtkm::UInt64 totalSpaceUsed = subTableSize;
@@ -602,10 +668,12 @@ namespace hashfight
       //std::cout << "subTableStart = " << subTableStart << "\n";
       //std::cout << "subTableSize = " << subTableSize << "\n";
 
+      hashFunctionId = numLoops % ht.numHashFunctions;
 
       //std::cout << "Starting ProbeForKey\n";
 
-      const vtkm::UInt32 minSize = 250000000;
+      const vtkm::UInt32 minSize = 994000000;
+      //const vtkm::UInt32 minSize = subTableSize;
       vtkm::Id numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       const vtkm::UInt32 chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);
       //std::cout << "numPasses = " << numPasses << "\n";
@@ -614,18 +682,18 @@ namespace hashfight
       //const vtkm::UInt32 minSize = subTableSize;
       //vtkm::UInt32 numActiveEntries = (vtkm::UInt32)(subTableSize / ht.size_factor);
       //std::cout << "numActiveEntries = " << numActiveEntries << "\n";
-      if (subTableSize < minSize)
+      if (subTableSize <= minSize)
       {
         numPasses = 1;
         //if (subTableSize <= 1000000)
           //break;
       }
-      vtkm::UInt32 totalPassKeys = 0;
+      //vtkm::UInt32 totalPassKeys = 0;
       for (vtkm::Id pass = 0; pass < numPasses; pass++)
       {
         chunkStart = (vtkm::UInt32)(pass*chunkSize);
         chunkEnd = (vtkm::UInt32)vtkm::Min((vtkm::Id)subTableSize, (pass+1)*chunkSize);
-        if (subTableSize < minSize)
+        if (subTableSize <= minSize)
         {
           chunkStart = 0;
           chunkEnd = subTableSize;
@@ -633,12 +701,16 @@ namespace hashfight
         //std::cout << "start = " << chunkStart << "\n";
         //std::cout << "end = " << chunkEnd << "\n";
 
-      ProbeForKey queryWorklet(subTableSize, subTableStart, chunkStart, chunkEnd);
-      vtkm::worklet::DispatcherMapField<ProbeForKey, DeviceAdapter> queryDispatcher(queryWorklet);
+      ProbeForKey<DeviceAdapter> queryWorklet(subTableSize, subTableStart, 
+                                              chunkStart, chunkEnd,
+                                              hashFunctionId, ht.hash_constants.PrepareForInput(DeviceAdapter()));
+      vtkm::worklet::DispatcherMapField<ProbeForKey<DeviceAdapter> > queryDispatcher(queryWorklet);
+      vtkm::cont::Timer<DeviceAdapter> queryTimer;
       queryDispatcher.Invoke(query_keys,
 			     query_values,
 			     ht.entries,
                              isActive);
+      elapsedTime += queryTimer.GetElapsedTime();
       }
 
       debug::HashingDebug(isActive, "isActive");
@@ -667,8 +739,9 @@ namespace hashfight
     //std::cout << "Total space used: " << totalSpaceUsed << "\n";
     //std::cout << "Total allocated space: " << ht.size << "\n";
 
+    return elapsedTime;
   }
-
+  
 } //namespace hashfight
 
 
@@ -678,7 +751,6 @@ int CheckResults_basic(const unsigned kInputSize,
                        const unsigned *query_vals)
 {
   int errors = 0;
-  int not_found = 0;
   for (unsigned i = 0; i < kInputSize; ++i)
   {
     unsigned actual_value = keyNotFound;
@@ -686,8 +758,6 @@ int CheckResults_basic(const unsigned kInputSize,
             pairs.find(query_keys[i]);
     if (it != pairs.end())
       actual_value = it->second;
-    else
-      not_found++;
     if (actual_value != query_vals[i])
     {
       errors++;
@@ -696,7 +766,6 @@ int CheckResults_basic(const unsigned kInputSize,
                    query_keys[i], actual_value, query_vals[i]);
     }
   }
-  std::cout << "not_found = " << not_found << "\n";
   return errors;
 }
 
@@ -706,237 +775,118 @@ int main(int argc, char** argv)
   if (argc < 2)
     return -1;
 
-  std::cout << "========================CUDPP Cuckoo Hashing"
-            << "==============================\n";
-
-  int deviceCount;
-  cudaGetDeviceCount(&deviceCount);
-  if (deviceCount == 0)
-  {
-    fprintf(stderr, "Error (main): no devices supporting CUDA.\n");
-    exit(1);
-  }
- 
-  cudaDeviceProp prop;
-  if (cudaGetDeviceProperties(&prop, 0) == 0)
-  {
-    //printf("Using device %d:\n", 0);
-    //printf("%s; global mem: %uB; compute v%d.%d; clock: %d kHz; warps: %d; regs per block: %d; shared memory: %uB\n",
-      //     prop.name, (unsigned int)prop.totalGlobalMem, (int)prop.major,
-        //   (int)prop.minor, (int)prop.clockRate, (int)prop.warpSize, (int)prop.regsPerBlock, (unsigned int)prop.sharedMemPerBlock);
-  }
-
-  if (prop.major < 2)
-  {
-    fprintf(stderr, "ERROR: CUDPP hash tables are only supported on "
-                "devices with compute\n  capability 2.0 or greater; "
-                "exiting.\n");
-    exit(1);
-  }
-
-
-  CUDPPHandle theCudpp;
-  CUDPPResult result = cudppCreate(&theCudpp);
-  if (result != CUDPP_SUCCESS)
-  {
-    fprintf(stderr, "Error initializing CUDPP Library.\n");
-    exit(1);
-  }
-
-  //const unsigned kNumSpaceUsagesToTest = 5;
-  const float kSpaceUsagesToTest[] = {1.05f, 1.15f, 1.25f, 1.5f, 2.0f};
-
-  //unsigned int kInputSize = 100000000;
   
+  std::string data_dir(argv[6]);
+
+#if 0
+  unsigned int* input_keys = NULL;
+  unsigned int* input_vals = NULL;
+  unsigned *query_keys = NULL;
+  unsigned int pool_size = 0;
+  unsigned int* number_pool = NULL;
+  
+  const int overall_trials = 1; 
+  const int failure_trials = 10; 
+  float failure_rate = 0.0f;
+  const unsigned int maxInputSize = 1450000000;
+  const unsigned int minInputSize = 550000000;
+  const unsigned int inputStepSize = 50000000;
+  //const int numSpaceUsagesToTest = 9;
+  //const float kSpaceUsagesToTest[9] = {1.03f, 1.05f, 1.10f, 1.15f, 1.25f, 1.5f, 1.75f, 1.9f, 2.0f};
+  for (int trialId = 0; trialId < overall_trials; trialId++)
+  {
+    std::cout << "---------------Trial # " << trialId << "-----------------\n";
+    for (unsigned int kInputSize = maxInputSize; kInputSize >= minInputSize; kInputSize -= inputStepSize)
+    {
+      std::cout << "Input Size = " << kInputSize << "\n";
+      pool_size = kInputSize * 2;
+      input_keys = new unsigned int[kInputSize];
+      input_vals = new unsigned int[kInputSize];
+      number_pool = new unsigned int[pool_size];
+
+      std::cout << "Generating random input keys\n";
+      //Randomly-generate the input keys and values
+      GenerateUniqueRandomNumbers(number_pool, pool_size);
+  
+      //The unique numbers are pre-shuffled by the generator.
+      //Take the first half as the input keys.
+      memcpy(input_keys, number_pool, sizeof(unsigned int) * kInputSize);
+
+      std::cout << "Generating random input vals\n";
+      for (unsigned int i = 0; i < kInputSize; i++)
+        input_vals[i] = (unsigned int) genrand_int32();
+
+      std::cout << "Dumping binary of input keys\n";
+      dump_binary(input_keys, kInputSize, data_dir + "inputKeys-" + std::to_string(kInputSize) + 
+     					"-" + std::to_string(trialId));
+
+      std::cout << "Dumping binary of input vals\n";
+      dump_binary(input_vals, kInputSize, data_dir + "inputVals-" + std::to_string(kInputSize) +   
+ 				      "-" + std::to_string(trialId));
+     
+      //Randomly-generate the query keys
+      for (int failure = 0; failure < failure_trials; failure++)
+      {
+         failure_rate = failure / (float)failure_trials;
+         std::cout << "Failure Rate = " << failure_rate << "\n";
+         query_keys = new unsigned int[kInputSize];
+         std::cout << "Generating random query keys\n";
+         GenerateQueries(kInputSize, failure_rate, number_pool, query_keys); 
+         std::cout << "Dumping binary of query keys\n";
+         dump_binary(query_keys, kInputSize, data_dir + "queryKeys-" + std::to_string(kInputSize) +
+ 				            "-" + std::to_string(failure) + "-" +
+				            std::to_string(failure_trials) + "-" +
+				            std::to_string(trialId));
+         delete [] query_keys;
+       } 
+
+       delete [] number_pool;
+       delete [] input_keys;
+       delete [] input_vals;
+     } 
+  }
+
+#endif
+
   unsigned int kInputSize = (unsigned int)std::atoi(argv[1]);
-
-  CUDPPHashTableType htt = CUDPP_BASIC_HASH_TABLE;
-
-  CUDPPHashTableConfig config;
-  config.type = htt;
-  config.kInputSize = kInputSize;
-  //config.space_usage = kSpaceUsagesToTest[4];
-  config.space_usage = (float)std::atof(argv[2]);  
-
   unsigned int* input_keys = new unsigned int[kInputSize];
   unsigned int* input_vals = new unsigned int[kInputSize];
   unsigned *query_keys = new unsigned[kInputSize];
-  unsigned *query_vals = new unsigned[kInputSize];
-
-
-  const unsigned int pool_size = kInputSize * 2;
+  unsigned int pool_size = kInputSize * 2;
   unsigned int* number_pool = new unsigned int[pool_size];
-  
-  #if 1 
-  std::cout << "Generating random keys and values...\n";
-  GenerateUniqueRandomNumbers(number_pool, pool_size);
 
-  //The unique numbers are pre-shuffled by the generator.
-  //Take the first half as the input keys.
-  //std::cout << "Copying pool numbers to input_keys...\n";
-  memcpy(input_keys, number_pool, sizeof(unsigned int) * kInputSize);
+  #if 1
+  std::cout << "Loading binary of input keys...\n";
+  load_binary(input_keys, kInputSize, data_dir + "/inputKeys-"+std::string(argv[1])+"-"+std::string(argv[5])); 
 
-  //std::cout << "Randomly generating values...\n";
-  for (unsigned int i = 0; i < kInputSize; i++)
-    input_vals[i] = (unsigned int) genrand_int32();
- 
-  dump_binary(input_keys, kInputSize, "inputKeys-" + std::to_string(kInputSize));
-  dump_binary(input_vals, kInputSize, "inputVals-" + std::to_string(kInputSize));
- #endif
-
-  #if 0
-  std::cout << "Loading input keys and values...\n";
-  load_binary(input_keys, kInputSize, "inputKeys-"+std::to_string(kInputSize)); 
-  load_binary(input_vals, kInputSize, "inputVals-"+std::to_string(kInputSize)); 
+  std::cout << "Loading binary of input values...\n";
+  load_binary(input_vals, kInputSize, data_dir + "/inputVals-"+std::string(argv[1])+"-"+std::string(argv[5])); 
   #endif  
 
+    
+  #if 1
+  //Generate a set of queries comprised of keys both
+  //from and not from the input.
+  std::cout << "Loading binary of query keys...\n";
+  load_binary(query_keys, kInputSize, data_dir + "/queryKeys-"+std::string(argv[1])+"-"+std::string(argv[3])+"-"+std::string(argv[4])+"-"+std::string(argv[5]));
+  #endif
+
+ 
+  #if 0
+  std::cout << "Saving key-val pairs...\n";
   //Save the original input for checking the results.
   std::unordered_map<unsigned, unsigned> pairs_basic;
   for (unsigned i = 0; i < kInputSize; ++i)
     pairs_basic[input_keys[i]] = input_vals[i];
-
-  //std::cout << "Dumping binary files...\n";
+  #endif
   
-  unsigned int* d_test_keys = NULL, *d_test_vals = NULL;
 
 #if 1
-//std::cout << "cudaMalloc keys and vals...\n";
-  //Begin insertion phase for cuckoo hashing
-//START_TIMER_BLOCK(CuckooHashingBuild)
-  CUDA_SAFE_CALL(cudaMalloc((void**) &d_test_keys,
-                            sizeof(unsigned int) * kInputSize));
-  CUDA_SAFE_CALL(cudaMalloc((void**) &d_test_vals,
-                            sizeof(unsigned int) * kInputSize));
- 
-  //std::cout << "cudaMemcpy keys and vals...\n";
-  CUDA_SAFE_CALL(cudaMemcpy(d_test_keys, input_keys,
-                            sizeof(unsigned int) * kInputSize,
-                            cudaMemcpyHostToDevice));
-
-  CUDA_SAFE_CALL(cudaMemcpy(d_test_vals, input_vals,
-                            sizeof(unsigned int) * kInputSize,
-                            cudaMemcpyHostToDevice));
-
-  CUDPPHandle hash_table_handle;
-  result = cudppHashTable(theCudpp, &hash_table_handle, &config);
-  if (result != CUDPP_SUCCESS)
-  {
-    fprintf(stderr, "Error in cudppHashTable call in"
-                    "testHashTable (make sure your device is at"
-                    "least compute version 2.0\n");
-  }
-
-  std::cout << "(CuckooHash) Inserting into hash table...\n";
-  result = cudppHashInsert(hash_table_handle, d_test_keys, d_test_vals, kInputSize);
-  cudaThreadSynchronize();
- 
-//END_TIMER_BLOCK(CuckooHashingBuild)
- 
-  //printf("Cuckoo Hash table build complete\n");
-  if (result != CUDPP_SUCCESS)
-  {
-    fprintf(stderr, "Error in cudppHashInsert call in"
-                    " testHashTable\n");
-  }
-  #endif
-
-
-  #if 1 
-  //Begin querying phase for cuckoo hashing
-  const int failure_trials = 1;
-  for (int failure = 0; failure < failure_trials; ++failure)
-  {
-    // Generate a set of queries comprised of keys both
-    // from and not from the input.
-    //float failure_rate = failure / (float) failure_trials;
-    float failure_rate = 0.00f;
-
-    #if 1
-    std::cout << "Generating random query keys...\n";
-    GenerateQueries(kInputSize, failure_rate, number_pool, query_keys); 
-    dump_binary(query_keys, kInputSize, "queryKeys-" + std::to_string(kInputSize));
-    #endif
-
-    #if 0
-    std::cout << "Loading input query keys...\n";
-    load_binary(query_keys, kInputSize, "queryKeys-"+std::to_string(kInputSize));
-    #endif
-
-    printf("(CuckooHash) Querying with %.3f chance of "
-           "failed queries\n", failure_rate);
-//START_TIMER_BLOCK(CuckooHashingRetrieve)
-   CUDA_SAFE_CALL(cudaMemcpy(d_test_keys, query_keys,
-                              sizeof(unsigned int) * kInputSize,
-                              cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaMemset(d_test_vals, 0,
-                              sizeof(unsigned int) * kInputSize));
-
-    unsigned int errors = 0;
-    result = cudppHashRetrieve(hash_table_handle,
-                               d_test_keys, d_test_vals,
-                               kInputSize); 
-    cudaThreadSynchronize();
-//END_TIMER_BLOCK(CuckooHashingRetrieve)
-
-    if (result != CUDPP_SUCCESS)
-      fprintf(stderr, "Error in cudppHashRetrieve call in"
-                                "testHashTable\n");
-
-    #if 0
-    //Check the results.
-    CUDA_SAFE_CALL(cudaMemcpy(query_vals, d_test_vals,
-                              sizeof(unsigned) * kInputSize,
-                              cudaMemcpyDeviceToHost));
-    
-    errors += CheckResults_basic(kInputSize,
-                                 pairs_basic,
-                                 query_keys,
-                                 query_vals);
-    if (errors > 0)
-      printf("%d errors found\n", errors);
-    else
-      printf("No errors found, test passes\n");
-    #endif
-  }
-  #endif
-    
-
-  //Free the hash table and data arrays from the device
-  result = cudppDestroyHashTable(theCudpp, hash_table_handle);
-  if (result != CUDPP_SUCCESS)
-  {
-    fprintf(stderr, "Error in cudppDestroyHashTable call in"
-                            "testHashTable\n");
-  }
-  CUDA_SAFE_CALL(cudaFree(d_test_keys));
-  CUDA_SAFE_CALL(cudaFree(d_test_vals));
-  result = cudppDestroy(theCudpp);
-  if (result != CUDPP_SUCCESS)
-    printf("Error shutting down CUDPP Library.\n");
-
-
-#if 0 
-  delete [] input_keys;
-  delete [] input_vals;
-  input_keys = new unsigned int[20]; 
-  input_vals = new unsigned int[20];
-  kInputSize = 20;
-
-  int i;
-  unsigned int r;
-  for (i = 0; i < kInputSize; i++)
-  {
-    r = genrand_int32();
-    *(input_keys+i) = r;    
-    *(input_vals+i) = r;
-  }
-#endif
-
-
-
   using Algorithm = vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter>;
-  using DeviceAdapterTraits = vtkm::cont::DeviceAdapterTraits<DeviceAdapter>;
-  std::cout << "Running on device adapter: " << DeviceAdapterTraits::GetName() << "\n";
+
+  std::cout << "========================VTK-m HashFight Hashing"
+            << "==============================\n";
+  //std::cout << "Running on device adapter: " << DeviceAdapterTraits::GetName() << "\n";
 
   vtkm::cont::ArrayHandle<vtkm::UInt32> insertKeys =
     vtkm::cont::make_ArrayHandle(input_keys, kInputSize);
@@ -944,72 +894,40 @@ int main(int argc, char** argv)
   vtkm::cont::ArrayHandle<vtkm::UInt32> insertVals =
     vtkm::cont::make_ArrayHandle(input_vals, kInputSize);
 
-
   debug::HashingDebug(insertKeys, "insertKeys");
   debug::HashingDebug(insertVals, "insertVals"); 
 
-  /*
-  vtkm::cont::ArrayHandleCast<vtkm::Id, vtkm::cont::ArrayHandle<unsigned int> > castArrayKeys(insertKeys);
-  IdHandleType castedKeys;
-  Algorithm::Copy(castArrayKeys, castedKeys);
- 
-  vtkm::cont::ArrayHandleCast<vtkm::Id, vtkm::cont::ArrayHandle<unsigned int> > castArrayVals(insertVals);
-  IdHandleType castedVals;
-  Algorithm::Copy(castArrayVals, castedVals);
- 
-  debug::HashingDebug(castedKeys, "castedKeys");
-  debug::HashingDebug(castedVals, "castedVals");
-  */
-
-
-  #if 0
-  std::cout << "========================Thrust Radix SortByKey"
-            << "==============================\n";
-
-  Algorithm::SortByKey(insertKeys, insertVals);
-  #endif
-
-
-  std::cout << "========================VTK-m HashFight Hashing"
-            << "==============================\n";
-
+  
+  insertKeys.PrepareForInput(DeviceAdapter());
+  insertVals.PrepareForInput(DeviceAdapter());
+  
   //Configure and initialize the hash table
   hashfight::HashTable<DeviceAdapter,UInt64HandleType> ht((vtkm::Id)kInputSize,
                                                         (vtkm::FloatDefault)std::atof(argv[2]));
+ 
+  using PairType = vtkm::Pair<vtkm::UInt32, vtkm::UInt32>;
+  std::vector<PairType> constants;
+  GenerateFunctions(ht.numHashFunctions, constants);
+  ht.hash_constants = vtkm::cont::make_ArrayHandle(constants);
 
-  //std::cout << "Table size = " << ht.size << "\n";
-
-#if 1
-
-  vtkm::UInt32 tableBytes = (vtkm::UInt32)(ht.size * sizeof(vtkm::UInt32));
-  //std::cout << "L2 Cache Size = " << prop.l2CacheSize << "\n"
-    //        << "Global L1 Cache Supported = " << prop.globalL1CacheSupported << "\n"
-      //      << "Local L1 Cache Supported = " << prop.localL1CacheSupported << "\n";  
-
-  //std::cout << "Number of passes = 32\n";
-  //std::cout << "Chunk size = " << tableBytes / 32 << "\n";
-
+  //Insert the keys into the hash table 
   std::cout << "(HashFight) Inserting into hash table...\n";
-
-//START_TIMER_BLOCK(HashFightBuild)
-
-  //Insert the keys into the hash table
-  hashfight::Insert<DeviceAdapter>(insertKeys,
+  vtkm::Float64 hfInsertTime;
+  hfInsertTime = hashfight::Insert<DeviceAdapter>(insertKeys,
                                    insertVals,
                                    ht);
 
+  //std::cout << "HashFightInsert : elapsed : " << elapsedTime << "\n";
   debug::HashingDebug(ht.entries, "hashTable");
  
-//END_TIMER_BLOCK(HashFightBuild)
+  insertKeys.ReleaseResourcesExecution();
+  insertVals.ReleaseResourcesExecution();
 
-insertKeys.ReleaseResourcesExecution();
-insertVals.ReleaseResourcesExecution();
-#endif
-
-#if 1
-
+  //Begin query phase
   vtkm::cont::ArrayHandle<vtkm::UInt32> queryKeys =
     vtkm::cont::make_ArrayHandle(query_keys, kInputSize);
+
+  queryKeys.PrepareForInput(DeviceAdapter());
 
   vtkm::cont::ArrayHandle<vtkm::UInt32> queryVals;
   Algorithm::Copy(vtkm::cont::make_ArrayHandleConstant(keyNotFound, kInputSize), queryVals);
@@ -1017,20 +935,20 @@ insertVals.ReleaseResourcesExecution();
   debug::HashingDebug(queryKeys, "queryKeys");
   debug::HashingDebug(queryVals, "queryVals");
 
-//START_TIMER_BLOCK(HashFightQuery)
 
-  printf("(HashFight) Querying with 0.00 chance of failed queries...\n");
+  //printf("(HashFight) Querying with %.3f chance of failed queries...\n", failure_rate);
   //Query the hash table
-  hashfight::Query<DeviceAdapter>(queryKeys,
+  vtkm::Float64 hfQueryTime;
+  hfQueryTime = hashfight::Query<DeviceAdapter>(queryKeys,
                                   ht,
                                   queryVals);
 
+  //std::cout << "HashFightQuery : elapsed : " << elapsedTime << "\n";
   debug::HashingDebug(queryKeys, "queryKeys");
   debug::HashingDebug(queryVals, "queryVals");
  
-//END_TIMER_BLOCK(HashFightQuery)
 
-  #if 1
+  #if 0
   int errors = CheckResults_basic(kInputSize,
                                   pairs_basic,
                                   query_keys,
@@ -1041,15 +959,16 @@ insertVals.ReleaseResourcesExecution();
     printf("No errors found, test passes\n");
 
   #endif
-#endif
  
   queryVals.ReleaseResources();
   queryKeys.ReleaseResources();
   insertKeys.ReleaseResources();
   insertVals.ReleaseResources();
 
-  //cudaProfilerStop();
+#endif
   
+  std::cout << hfInsertTime << "," << hfQueryTime << "\n";
+
   delete [] number_pool;
   //delete [] input_keys;
   //delete [] input_vals;

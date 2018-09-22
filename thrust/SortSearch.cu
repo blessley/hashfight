@@ -61,7 +61,7 @@ int main(int argc, char** argv)
   cudaEventElapsedTime(&sortTime, start, stop);
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
-  std::cout << "Sort: elapsed : " << sortTime/1000 << "\n";
+  //std::cout << "Sort: elapsed : " << sortTime/1000 << "\n";
   
   #if 1
   thrust::device_vector<unsigned int> query_keys_d(query_keys,
@@ -85,7 +85,8 @@ int main(int argc, char** argv)
   delete [] query_keys;
   #endif
 
-  std::cout << "Search: elapsed : " << searchTime/1000 << "\n";
+  //std::cout << "Search: elapsed : " << searchTime/1000 << "\n";
+  std::cout << sortTime/1000 << "," << searchTime/1000 << "\n";
 
   delete [] input_keys;
   delete [] input_vals;

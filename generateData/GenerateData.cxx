@@ -51,9 +51,9 @@ int main(int argc, char** argv)
   int trialId = std::stoi(argv[1]); 
   const int failure_trials = 10; 
   float failure_rate = 0.0f;
-  const unsigned int maxInputSize = 500000000;
-  const unsigned int minInputSize = 25000000;
-  const unsigned int inputStepSize = 25000000;
+  const unsigned int maxInputSize = 1450000000;
+  const unsigned int minInputSize = 1300000000;
+  const unsigned int inputStepSize = 50000000;
   std::string data_dir(argv[2]);
   //const int numSpaceUsagesToTest = 9;
   //const float kSpaceUsagesToTest[9] = {1.03f, 1.05f, 1.10f, 1.15f, 1.25f, 1.5f, 1.75f, 1.9f, 2.0f};
@@ -79,11 +79,11 @@ int main(int argc, char** argv)
         input_vals[i] = (unsigned int) genrand_int32();
 
       std::cout << "Dumping binary of input keys\n";
-      dump_binary(input_keys, kInputSize, data_dir + "inputKeys-" + std::to_string(kInputSize) + 
+      dump_binary(input_keys, kInputSize, data_dir + "/inputKeys-" + std::to_string(kInputSize) + 
      					"-" + std::to_string(trialId));
 
       std::cout << "Dumping binary of input vals\n";
-      dump_binary(input_vals, kInputSize, data_dir + "inputVals-" + std::to_string(kInputSize) +   
+      dump_binary(input_vals, kInputSize, data_dir + "/inputVals-" + std::to_string(kInputSize) +   
  				      "-" + std::to_string(trialId));
      
       //Randomly-generate the query keys
@@ -95,7 +95,7 @@ int main(int argc, char** argv)
          std::cout << "Generating random query keys\n";
          GenerateQueries(kInputSize, failure_rate, number_pool, query_keys); 
          std::cout << "Dumping binary of query keys\n";
-         dump_binary(query_keys, kInputSize, data_dir + "queryKeys-" + std::to_string(kInputSize) +
+         dump_binary(query_keys, kInputSize, data_dir + "/queryKeys-" + std::to_string(kInputSize) +
  				            "-" + std::to_string(failure) + "-" +
 				            std::to_string(failure_trials) + "-" +
 				            std::to_string(trialId));
