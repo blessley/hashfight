@@ -161,7 +161,7 @@ namespace hashfight
     static constexpr vtkm::FloatDefault subTableSizeFactor = 1.575;
     //static constexpr vtkm::FloatDefault subTableSizeFactor = 1.4935;
     static constexpr vtkm::Id maxNumSubTables = 25;
-    static constexpr vtkm::Id numHashFunctions = 6;
+    static constexpr vtkm::Id numHashFunctions = 4;
 
     TableType entries;
     std::vector<vtkm::UInt32> sub_table_starts;
@@ -271,6 +271,79 @@ namespace hashfight
     h ^= h >> 16;
     return h;
   }
+ 
+  class CopyToSubTable : public vtkm::worklet::WorkletMapField
+  {
+  private:
+    vtkm::UInt32 SubTableStart;
+
+  public:
+    typedef void ControlSignature(FieldIn<>, FieldIn<>, WholeArrayInOut<>);
+    typedef void ExecutionSignature(WorkIndex, _1, _2, _3);
+
+    VTKM_CONT
+    CopyToSubTable(const unsigned int &start) : SubTableStart(start) { };
+ 
+    template<typename TableType>
+    VTKM_EXEC
+    void operator()(const vtkm::Id &index,
+                    const vtkm::UInt32 &key,
+		    const vtkm::UInt32 &value,
+                    TableType &hashTable) const
+    {
+      hashTable.Set(SubTableStart + index, ((vtkm::UInt64)(key) << 32) + value);
+    }
+  };
+
+
+  class BinarySearch : public vtkm::worklet::WorkletMapField
+  {
+  private:
+    vtkm::UInt32 SubTableStart;
+    vtkm::UInt32 SubTableSize;
+
+  public:
+    typedef void ControlSignature(FieldIn<>, FieldInOut<>, WholeArrayIn<>, WholeArrayIn<>);
+    typedef void ExecutionSignature(WorkIndex, _1, _2, _3, _4);
+
+    VTKM_CONT
+    BinarySearch(const vtkm::UInt32 &start,
+                 const vtkm::UInt32 &size) 
+      : SubTableStart(start), SubTableSize(size) { };
+ 
+    template<typename ActiveType,
+             typename TableType>
+    VTKM_EXEC
+    void operator()(const vtkm::Id &index,
+                    const vtkm::UInt32 &key,
+		    vtkm::UInt32 &value,
+                    TableType &hashTable,
+                    ActiveType &isActive) const
+    {
+      if (isActive.Get(index))
+      {
+        vtkm::UInt64 left = SubTableStart, right = SubTableStart + SubTableSize;
+        vtkm::UInt64 mid, entry;
+        vtkm::UInt32 winningKey;
+        while (left < right)
+        {
+          mid = left + (right - left)/2;
+          entry = hashTable.Get(mid);
+          winningKey = (vtkm::UInt32)(entry >> 32);
+          if (winningKey < key)
+            left = mid + 1;
+          else if (winningKey > key)
+            right = mid;
+          else
+          {        
+            value = (vtkm::UInt32)entry;
+            break;
+          }
+        } 
+      }
+    }
+  };
+
 
   /* Hashes an array of keys into indices within the hash table.
    * The FNV1-a hash function is used to map an unsigned integer key
@@ -327,8 +400,8 @@ namespace hashfight
       if (isActive.Get(index))
       {
         //vtkm::UInt32 h = FNV1aHash(key);
-        //vtkm::UInt32 h = MurmurHash3(key);
-        vtkm::UInt32 h = UniversalHash(Constants.Get(HashFunctionId), key); 
+        vtkm::UInt32 h = MurmurHash3(key);
+        //vtkm::UInt32 h = UniversalHash(Constants.Get(HashFunctionId), key); 
         h = (h % SubTableSize) + SubTableStart;
         if (h >= ChunkStart && h < ChunkEnd)
           hashTable.Set(h, ((vtkm::UInt64)(key) << 32) + value);
@@ -384,8 +457,8 @@ namespace hashfight
       if (isActive.Get(index))
       {    
         //vtkm::UInt32 h = FNV1aHash(key); 
-        //vtkm::UInt32 h = MurmurHash3(key);
-        vtkm::UInt32 h = UniversalHash(Constants.Get(HashFunctionId), key);
+        vtkm::UInt32 h = MurmurHash3(key);
+        //vtkm::UInt32 h = UniversalHash(Constants.Get(HashFunctionId), key);
         h = (h % SubTableSize) + SubTableStart;
         if (h >= ChunkStart && h < ChunkEnd)
         {
@@ -441,8 +514,8 @@ namespace hashfight
       if (isActive.Get(index))
       {    
         //vtkm::UInt32 h = FNV1aHash(key);
-        //vtkm::UInt32 h = MurmurHash3(key);
-        vtkm::UInt32 h = UniversalHash(Constants.Get(HashFunctionId), key);
+        vtkm::UInt32 h = MurmurHash3(key);
+        //vtkm::UInt32 h = UniversalHash(Constants.Get(HashFunctionId), key);
         h = (h % SubTableSize) + SubTableStart; 
         if (h >= ChunkStart && h < ChunkEnd)
         {
@@ -497,7 +570,7 @@ namespace hashfight
 
     //Begin hash fighting to insert keys
     while (numActiveEntries > 0)
-    {
+    {      
  
       std::cerr << "=============Loop " << numLoops << " =======================\n";
       std::cerr << "numActiveEntries = " << numActiveEntries << "\n";
@@ -510,6 +583,7 @@ namespace hashfight
       
       hash_table.sub_table_starts.push_back(subTableSize); 
 
+      
       //vtkm::UInt32 minSize = 994000000;
       vtkm::UInt32 minSize = subTableSize;
       vtkm::Id numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
@@ -571,6 +645,23 @@ namespace hashfight
       debug::HashingDebug(isActive, "isActive");
       debug::HashingDebug(hash_table.entries, "hashTable");      
  
+      #if 0
+      UInt32HandleType uniqueHashes, sortedHashes;
+      IdHandleType hashCounts;
+      Algorithm::CopyIf(hashes, isActive, sortedHashes);
+      Algorithm::Sort(sortedHashes);
+      Algorithm::ReduceByKey(sortedHashes, 
+			     vtkm::cont::make_ArrayHandleConstant((vtkm::Id)1, num_keys),
+			     uniqueHashes,
+			     hashCounts,
+                             vtkm::Add());
+      vtkm::Id maxNumCollisions = Algorithm::Reduce(hashCounts, vtkm::Id(0), vtkm::Maximum());
+      std::cout << "Max number of collisions = " << maxNumCollisions << "\n";
+      
+      debug::HashFightDebug(uniqueHashes, "uniqueHashes");
+      debug::HashFightDebug(hashCounts, "hashCounts");
+      #endif
+ 
       //minSize = 1000000;
       
       //numPasses = 1;
@@ -617,6 +708,46 @@ namespace hashfight
  
       numActiveEntries = numLosers;  
       subTableStart += subTableSize; 
+       
+ 
+      #if 1 
+      if (numActiveEntries < 1000000 && 
+          numActiveEntries > 0 && 
+          numActiveEntries < (hash_table.size-subTableStart))
+      {
+        std::cout << "remaining table slots = " << hash_table.size-subTableStart << "\n";
+        UInt32HandleType tempKeys, tempVals;
+
+        vtkm::cont::Timer<DeviceAdapter> copyTimer;
+        Algorithm::CopyIf(keys,
+		          isActive,
+                          tempKeys,
+                          (vtkm::Id)numActiveEntries);
+        Algorithm::CopyIf(vals,
+		          isActive,
+                          tempVals,
+                          (vtkm::Id)numActiveEntries);
+        elapsedTime += copyTimer.GetElapsedTime();
+
+        vtkm::cont::Timer<DeviceAdapter> sortTimer;
+        Algorithm::SortByKey(tempKeys, tempVals); 
+        elapsedTime += sortTimer.GetElapsedTime();
+        
+        std::cout << "Starting CopyToSubTable\n";
+
+        CopyToSubTable copyWorklet(subTableStart);
+        vtkm::worklet::DispatcherMapField<CopyToSubTable> copyTableDispatcher(copyWorklet);
+
+        vtkm::cont::Timer<DeviceAdapter> copyWorkletTimer;
+        copyTableDispatcher.Invoke(tempKeys, tempVals, hash_table.entries);
+        elapsedTime += copyWorkletTimer.GetElapsedTime();
+        
+        totalSpaceUsed += numActiveEntries;
+
+        break;
+      } 
+      #endif
+
       subTableSize = (vtkm::UInt32)(hash_table.size_factor * numActiveEntries);
       totalSpaceUsed += subTableSize;
       numLoops++;
@@ -734,7 +865,21 @@ namespace hashfight
       totalSpaceUsed += subTableSize;
 
       //std::cout << "==================================================\n";
-    }
+    } 
+     
+    #if 1 
+    const vtkm::UInt32 minHashingLimit = 1000000;
+    std::cout << "Starting binary search...\n"; 
+    BinarySearch searchWorklet(subTableStart, minHashingLimit); 
+    vtkm::worklet::DispatcherMapField<BinarySearch> searchDispatcher(searchWorklet);
+    vtkm::cont::Timer<DeviceAdapter> searchTimer;
+    searchDispatcher.Invoke(query_keys,
+			    query_values,
+			    ht.entries,
+                            isActive);
+    elapsedTime += searchTimer.GetElapsedTime();
+    #endif
+
 
     //std::cout << "Total space used: " << totalSpaceUsed << "\n";
     //std::cout << "Total allocated space: " << ht.size << "\n";
@@ -872,7 +1017,7 @@ int main(int argc, char** argv)
   #endif
 
  
-  #if 0
+  #if 1
   std::cout << "Saving key-val pairs...\n";
   //Save the original input for checking the results.
   std::unordered_map<unsigned, unsigned> pairs_basic;
@@ -912,7 +1057,7 @@ int main(int argc, char** argv)
 
   //Insert the keys into the hash table 
   std::cout << "(HashFight) Inserting into hash table...\n";
-  vtkm::Float64 hfInsertTime;
+  vtkm::Float64 hfInsertTime, hfQueryTime;
   hfInsertTime = hashfight::Insert<DeviceAdapter>(insertKeys,
                                    insertVals,
                                    ht);
@@ -923,6 +1068,7 @@ int main(int argc, char** argv)
   insertKeys.ReleaseResourcesExecution();
   insertVals.ReleaseResourcesExecution();
 
+#if 1
   //Begin query phase
   vtkm::cont::ArrayHandle<vtkm::UInt32> queryKeys =
     vtkm::cont::make_ArrayHandle(query_keys, kInputSize);
@@ -938,7 +1084,6 @@ int main(int argc, char** argv)
 
   //printf("(HashFight) Querying with %.3f chance of failed queries...\n", failure_rate);
   //Query the hash table
-  vtkm::Float64 hfQueryTime;
   hfQueryTime = hashfight::Query<DeviceAdapter>(queryKeys,
                                   ht,
                                   queryVals);
@@ -948,7 +1093,7 @@ int main(int argc, char** argv)
   debug::HashingDebug(queryVals, "queryVals");
  
 
-  #if 0
+  #if 1
   int errors = CheckResults_basic(kInputSize,
                                   pairs_basic,
                                   query_keys,
@@ -962,6 +1107,8 @@ int main(int argc, char** argv)
  
   queryVals.ReleaseResources();
   queryKeys.ReleaseResources();
+#endif
+
   insertKeys.ReleaseResources();
   insertVals.ReleaseResources();
 
