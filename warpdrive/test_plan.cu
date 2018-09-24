@@ -139,6 +139,7 @@ int main(int argc, char const *argv[]) {
     value_t * vals_h = new value_t[len_data];
     load_binary<value_t>(vals_h, len_data, filename+"/inputVals-"+std::to_string(len_data)+"-0");
 
+    #if 0
     //Save the original input for checking the results.
     std::cout << "Saving key-val pairs...\n";
     std::unordered_map<key_t, value_t> pairs_basic;
@@ -146,6 +147,7 @@ int main(int argc, char const *argv[]) {
     {
       pairs_basic[keys_h[i]] = vals_h[i];
     }
+    #endif
 
     //the hash table
     std::cout << "Allocating the hash table on device...\n";
@@ -221,7 +223,7 @@ int main(int argc, char const *argv[]) {
 
     cudaMemcpy(data_h, data_d, sizeof(data_t)*len_data, D2H); CUERR
 
-    #if 1
+    #if 0
     index_t errors = CheckResults_basic(len_data,
                                         pairs_basic,
                                         data_h);
