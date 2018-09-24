@@ -571,11 +571,10 @@ namespace hashfight
     //Begin hash fighting to insert keys
     while (numActiveEntries > 0)
     {      
- 
-      std::cerr << "=============Loop " << numLoops << " =======================\n";
-      std::cerr << "numActiveEntries = " << numActiveEntries << "\n";
-      std::cerr << "subtableSize = " << subTableSize << "\n";
-      std::cerr << "subtableStart = " << subTableStart << "\n";
+      //std::cerr << "=============Loop " << numLoops << " =======================\n";
+      //std::cerr << "numActiveEntries = " << numActiveEntries << "\n";
+      //std::cerr << "subtableSize = " << subTableSize << "\n";
+      //std::cerr << "subtableStart = " << subTableStart << "\n";
  
       //std::cout << "Starting ComputeHash\n";
 
@@ -702,9 +701,9 @@ namespace hashfight
 						 (vtkm::UInt32)0);
       elapsedTime += reduceTimer.GetElapsedTime();
       vtkm::UInt32 numWinners = (vtkm::UInt32) numActiveEntries - numLosers;
-      std::cout << "numLosers = " << numLosers << "\n";
-      std::cout << "numWinners = " << numWinners << "\n";
-      std::cout << "percent placed in table = " << numWinners / (1.0f*numActiveEntries) << "\n";
+      //std::cout << "numLosers = " << numLosers << "\n";
+      //std::cout << "numWinners = " << numWinners << "\n";
+      //std::cout << "percent placed in table = " << numWinners / (1.0f*numActiveEntries) << "\n";
  
       numActiveEntries = numLosers;  
       subTableStart += subTableSize; 
@@ -715,7 +714,7 @@ namespace hashfight
           numActiveEntries > 0 && 
           numActiveEntries < (hash_table.size-subTableStart))
       {
-        std::cout << "remaining table slots = " << hash_table.size-subTableStart << "\n";
+        //std::cout << "remaining table slots = " << hash_table.size-subTableStart << "\n";
         UInt32HandleType tempKeys, tempVals;
 
         vtkm::cont::Timer<DeviceAdapter> copyTimer;
@@ -733,7 +732,7 @@ namespace hashfight
         Algorithm::SortByKey(tempKeys, tempVals); 
         elapsedTime += sortTimer.GetElapsedTime();
         
-        std::cout << "Starting CopyToSubTable\n";
+        //std::cout << "Starting CopyToSubTable\n";
 
         CopyToSubTable copyWorklet(subTableStart);
         vtkm::worklet::DispatcherMapField<CopyToSubTable> copyTableDispatcher(copyWorklet);
@@ -752,7 +751,7 @@ namespace hashfight
       totalSpaceUsed += subTableSize;
       numLoops++;
 
-      std::cerr << "==================================================\n";
+      //std::cerr << "==================================================\n";
 
     }  //End of while loop
     
@@ -869,7 +868,7 @@ namespace hashfight
      
     #if 1 
     const vtkm::UInt32 minHashingLimit = 1000000;
-    std::cout << "Starting binary search...\n"; 
+    //std::cout << "Starting binary search...\n"; 
     BinarySearch searchWorklet(subTableStart, minHashingLimit); 
     vtkm::worklet::DispatcherMapField<BinarySearch> searchDispatcher(searchWorklet);
     vtkm::cont::Timer<DeviceAdapter> searchTimer;
@@ -1001,10 +1000,10 @@ int main(int argc, char** argv)
   unsigned int* number_pool = new unsigned int[pool_size];
 
   #if 1
-  std::cout << "Loading binary of input keys...\n";
+  //std::cout << "Loading binary of input keys...\n";
   load_binary(input_keys, kInputSize, data_dir + "/inputKeys-"+std::string(argv[1])+"-"+std::string(argv[5])); 
 
-  std::cout << "Loading binary of input values...\n";
+  //std::cout << "Loading binary of input values...\n";
   load_binary(input_vals, kInputSize, data_dir + "/inputVals-"+std::string(argv[1])+"-"+std::string(argv[5])); 
   #endif  
 
@@ -1012,12 +1011,12 @@ int main(int argc, char** argv)
   #if 1
   //Generate a set of queries comprised of keys both
   //from and not from the input.
-  std::cout << "Loading binary of query keys...\n";
+  //std::cout << "Loading binary of query keys...\n";
   load_binary(query_keys, kInputSize, data_dir + "/queryKeys-"+std::string(argv[1])+"-"+std::string(argv[3])+"-"+std::string(argv[4])+"-"+std::string(argv[5]));
   #endif
 
  
-  #if 1
+  #if 0
   std::cout << "Saving key-val pairs...\n";
   //Save the original input for checking the results.
   std::unordered_map<unsigned, unsigned> pairs_basic;
@@ -1029,8 +1028,8 @@ int main(int argc, char** argv)
 #if 1
   using Algorithm = vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter>;
 
-  std::cout << "========================VTK-m HashFight Hashing"
-            << "==============================\n";
+  //std::cout << "========================VTK-m HashFight Hashing"
+  //          << "==============================\n";
   //std::cout << "Running on device adapter: " << DeviceAdapterTraits::GetName() << "\n";
 
   vtkm::cont::ArrayHandle<vtkm::UInt32> insertKeys =
@@ -1056,7 +1055,7 @@ int main(int argc, char** argv)
   ht.hash_constants = vtkm::cont::make_ArrayHandle(constants);
 
   //Insert the keys into the hash table 
-  std::cout << "(HashFight) Inserting into hash table...\n";
+  //std::cout << "(HashFight) Inserting into hash table...\n";
   vtkm::Float64 hfInsertTime, hfQueryTime;
   hfInsertTime = hashfight::Insert<DeviceAdapter>(insertKeys,
                                    insertVals,
@@ -1093,7 +1092,7 @@ int main(int argc, char** argv)
   debug::HashingDebug(queryVals, "queryVals");
  
 
-  #if 1
+  #if 0
   int errors = CheckResults_basic(kInputSize,
                                   pairs_basic,
                                   query_keys,
