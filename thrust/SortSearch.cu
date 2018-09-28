@@ -26,8 +26,8 @@ int main(int argc, char** argv)
   float sortTime = 0, searchTime = 0;
   cudaEvent_t start, stop;
 
-  std::cout << "========================Thrust Sort+BinarySearch"
-            << "==============================\n";
+  //std::cout << "========================Thrust Sort+BinarySearch"
+    //        << "==============================\n";
 
 
   unsigned int kInputSize = (unsigned int)std::atoi(argv[1]);
@@ -35,13 +35,13 @@ int main(int argc, char** argv)
   unsigned int* input_vals = new unsigned int[kInputSize];
   unsigned int* query_keys = new unsigned int[kInputSize];
   
-  std::cout << "Loading binary of input keys...\n";
+  //std::cout << "Loading binary of input keys...\n";
   load_binary(input_keys, kInputSize, data_dir + "/inputKeys-" + std::string(argv[1]) + "-" + std::string(argv[4])); 
 
-  std::cout << "Loading binary of input vals...\n";
+  //std::cout << "Loading binary of input vals...\n";
   load_binary(input_vals, kInputSize, data_dir + "/inputVals-" + std::string(argv[1]) + "-" + std::string(argv[4])); 
 
-  std::cout << "Loading binary of query keys...\n";
+  //std::cout << "Loading binary of query keys...\n";
   load_binary(query_keys, kInputSize, data_dir + "/queryKeys-" + std::string(argv[1]) + "-" + std::string(argv[2]) + "-" + std::string(argv[3]) + "-" + std::string(argv[4])); 
 
  
@@ -86,7 +86,8 @@ int main(int argc, char** argv)
   #endif
 
   //std::cout << "Search: elapsed : " << searchTime/1000 << "\n";
-  std::cout << sortTime/1000 << "," << searchTime/1000 << "\n";
+  std::cout << sortTime/1000 << "\n";
+  std::cout << searchTime/1000 << "\n";
 
   delete [] input_keys;
   delete [] input_vals;

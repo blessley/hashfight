@@ -2,18 +2,21 @@
 
 #SET THESE RELATIVE TO YOUR SYSTEM:
 hashfight_SRC="/home/users/blessley/HashFight" #HashFight source dir
-hashfight_BUILD="/home/users/blessley/build-hash-fight" #HashFight source dir
-hashfight_DATA="/home/users/blessley/hashing-data" #HashFight source dir
-timings_OUT_DIR="/home/users/blessley/hashing-timings" #dir for output timing files
+hashfight_BUILD="/home/users/blessley/build-hash-fight" #HashFight build dir
+thrust_BUILD="/home/users/blessley/HashFight/thrust"
+cudpp_BUILD="/home/users/blessley/build-cudpp-benchmark"
+hashing_DATA="/home/users/samuelli/Datasets/hashing-data" #data dir
+timings_OUT_DIR="/home/users/blessley/hashing-timings/gpu-09-27" #dir for output timing files
 
 #sizes='500000000 1048576 134217728
 #factors='1.03 2.00 1.50 1.25 1.75 1.10 1.15 1.35 1.90'
 factors='1.03'
 #factors='2.00'
+max_size='500000000'
 sizes='325000000'
 failure='0'
 failure_trials=10
-all_trials=1
+all_trials=10
 
 #: <<'COMMENT'
 #run through all the sizes for each factor-failure configuration:
@@ -21,17 +24,22 @@ for l in $factors; do #load factors
   for f in $failure; do #failure rates
     filename_config_times="${timings_OUT_DIR}/${l}-${f}-${failure_trials}"
     touch $filename_config_times
-    for k in {50000000..1450000000..50000000}; do #num key-val pairs
+    for k in {50000000..300000000..50000000}; do #num key-val pairs
     #for k in $sizes; do #num key-val pairs
       filename_trial_times="${timings_OUT_DIR}/${k}-${l}-${f}-${failure_trials}"
       if [ -f "$filename_trial_times" ]; then
         rm $filename_trial_times
       fi
       touch $filename_trial_times
+      filename_temp_results="${timings_OUT_DIR}/temp"
+      touch $filename_temp_results
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${hashfight_BUILD}/Hashing_CUDA $k $l $f $failure_trials $counter $hashfight_DATA >> $filename_trial_times 2>&1
-        ((counter++))
+        ${hashfight_BUILD}/Hashing_CUDA $k $l $f $failure_trials $counter $hashing_DATA > $filename_temp_results 2>&1
+        ${cudpp_BUILD}/CuckooHash $k $l $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+	paste -d, -s $filename_temp_results >> $filename_trial_times
+	((counter++))
       done
       cat $filename_trial_times | \
       awk -F',' '{for (i=1;i<=NF;i++){a[i]+=$i;}} END {printf "%.4f", a[1]/NR; for (i=2;i<=NF;i++){printf ",%.4f", a[i]/NR};}' \

@@ -1113,7 +1113,8 @@ int main(int argc, char** argv)
 
 #endif
   
-  std::cout << hfInsertTime << "," << hfQueryTime << "\n";
+  std::cout << hfInsertTime << "\n";
+  std::cout << hfQueryTime << "\n";
 
   delete [] number_pool;
   //delete [] input_keys;
