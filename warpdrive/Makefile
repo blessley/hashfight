@@ -1,5 +1,5 @@
 NVCC  = nvcc
-ARCH  = sm_35
+ARCH  = sm_60
 STD   = c++11
 FLAGS = -O3 -std=$(STD) -arch=$(ARCH) -Xcompiler -fopenmp --expt-extended-lambda 
 
