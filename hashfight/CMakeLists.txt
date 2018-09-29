@@ -5,7 +5,7 @@ set(PROJECT_NAME "hashing-benchmark")
 project(${PROJECT_NAME})
 
 #SET THESE RELATIVE TO YOUR SYSTEM:
-set(VTKm_DIR "/home/users/blessley/test-apurna/lib/cmake/vtkm-1.2") #vtkm build dir
+set(VTKm_DIR "/glade/work/shaomeng/v100/vtkm-master/lib/cmake/vtkm-1.2" )
 
 set(SOURCES random_numbers.cpp mt19937ar.cpp)
 

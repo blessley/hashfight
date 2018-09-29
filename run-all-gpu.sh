@@ -1,12 +1,13 @@
 #!/bin/bash
 
 #SET THESE RELATIVE TO YOUR SYSTEM:
-hashfight_SRC="/home/users/blessley/HashFight" #HashFight source dir
-hashfight_BUILD="/home/users/blessley/build-hash-fight" #HashFight build dir
-thrust_BUILD="/home/users/blessley/HashFight/thrust" #Sort+Search thrust benchmark dir
-cudpp_BUILD="/home/users/blessley/build-cudpp-benchmark" #cudpp benchmark build dir
-hashing_DATA="/home/users/samuelli/Datasets/hashing-data" #data dir
-timings_OUT_DIR="/home/users/blessley/hashing-timings/gpu-09-28" #dir for output timing files
+hashfight_SRC="/glade/work/shaomeng/v100/hashfight" #HashFight source dir
+hashfight_BUILD="/glade/work/shaomeng/v100/hashfight/hashfight/build"
+hashing_DATA="/glade/scratch/shaomeng/hashing-data" #HashFight data dir
+timings_OUT_DIR="/glade/work/shaomeng/v100/hashfight/Sept29" #dir for output timing files
+
+thrust_BUILD="/glade/work/shaomeng/v100/hashfight/thrust"
+cudpp_BUILD="/glade/work/shaomeng/v100/hashfight/cuckoo/build"
 
 factors='1.03'
 failure='0'
