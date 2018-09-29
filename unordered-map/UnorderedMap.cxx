@@ -132,7 +132,7 @@ int main(int argc, char** argv)
   //std::cout << "Inserting pairs...\n";
   using PairType = std::pair<unsigned int, unsigned int>;
   using HashTable = tbb::concurrent_unordered_map<unsigned int, unsigned int, tbb_hash<unsigned int>, std::equal_to<unsigned int>, tbb::scalable_allocator<PairType> >;
-  HashTable table(kInputSize*loadFactor, tbb_hash<unsigned int>(), std::equal_to<unsigned int>(), tbb::scalable_allocator<PairType>());
+  HashTable table(kInputSize*loadFactor,tbb_hash<unsigned int>(), std::equal_to<unsigned int>(), tbb::scalable_allocator<PairType>());
   //HashTable table(kInputSize*loadFactor);
   tbb::auto_partitioner ap;
   start = tbb::tick_count::now();
