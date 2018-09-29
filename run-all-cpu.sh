@@ -52,7 +52,7 @@ for l in $factors; do #load factors
   for f in $failure; do #failure rates
     filename_config_times="${timings_OUT_DIR}/${l}-${f}-${failure_trials}"
     touch $filename_config_times
-    for k in {50000000..900000000..50000000}; do #num key-val pairs
+    for k in {50000000..1450000000..50000000}; do #num key-val pairs
       filename_trial_times="${timings_OUT_DIR}/${k}-${l}-${f}-${failure_trials}"
       if [ -f "$filename_trial_times" ]; then
         rm $filename_trial_times
@@ -111,7 +111,7 @@ done
 COMMENT
 
 
-sizes='900000000'
+sizes='1450000000'
 factors='2.0'
 : <<'COMMENT'
 #run through all the failures for a size-factor configuration:
@@ -145,7 +145,7 @@ done
 COMMENT
 
 factors='1.03 1.10 1.15 1.25 1.40 1.50 1.60 1.75 1.90 2.0'
-sizes='900000000'
+sizes='1450000000'
 failure='0'
 : <<'COMMENT'
 #run through all the factors for a size-failure configuration:
@@ -175,7 +175,7 @@ done
 COMMENT
 
 factors='1.03 1.10 1.15 1.25 1.40 1.50 1.60 1.75 1.90 2.0'
-sizes='900000000'
+sizes='1450000000'
 failure='5'
 : <<'COMMENT'
 #run through all the factors for a size-failure configuration:
