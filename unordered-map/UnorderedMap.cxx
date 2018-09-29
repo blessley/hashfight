@@ -1,13 +1,17 @@
-#include "tbb/concurrent_hash_map.h"
+//#include "tbb/concurrent_hash_map.h"
+#include "tbb/concurrent_unordered_map.h"
 #include "tbb/blocked_range.h"
 #include "tbb/parallel_for.h"
 #include "tbb/tick_count.h"
+#include "tbb/scalable_allocator.h"
 
+#include <functional>
 #include <unordered_map>
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <stdio.h>
+#include <utility>
 
 //Signifies that a query key was not found.
 constexpr unsigned int keyNotFound = 0xffffffffu;
@@ -47,7 +51,7 @@ void load_binary(const T * data,
 }
 
 
-inline size_t MurmurHash3(const unsigned int &x)
+inline size_t MurmurHash3(const unsigned int x)
 {
   unsigned int h = x ^ (x >> 16);
   h *= 0x7feb352d;
@@ -57,21 +61,35 @@ inline size_t MurmurHash3(const unsigned int &x)
   return (size_t)h;
 }
 
+template<typename Key>
+struct tbb_hash 
+{
+  tbb_hash() {}
+  size_t operator()(const Key& k) const 
+  {
+    return MurmurHash3(k);
+  }
+};
+
+/*
 //Structure that defines hashing and comparison operations for key type.
-struct MyHashCompare 
+struct KeyHash 
 {
   static size_t hash(const unsigned int &x) 
   {
     return MurmurHash3(x);
   }
-    
+};
+
+struct KeyCompare
+{
   //True if keys are equal
-  static bool equal(const unsigned int &x, const unsigned int &y) 
+  static bool equal(const unsigned int x, const unsigned int y) 
   {
     return x == y;
   }
 };
-
+*/
 
 int main(int argc, char** argv)
 {
@@ -81,8 +99,8 @@ int main(int argc, char** argv)
   double insertTime, queryTime;
   tbb::tick_count start, stop;
 
-  std::cout << "========================TBB Concurrent HashMap"
-            << "==============================\n";
+  //std::cout << "========================TBB Concurrent HashMap"
+    //        << "==============================\n";
 
 
   unsigned int kInputSize = (unsigned int)std::atoi(argv[1]);
@@ -94,13 +112,13 @@ int main(int argc, char** argv)
  
   memset(query_vals, keyNotFound, kInputSize*sizeof(unsigned int));
  
-  std::cout << "Loading binary of input keys...\n";
+  //std::cout << "Loading binary of input keys...\n";
   load_binary(input_keys, kInputSize, data_dir + "/inputKeys-" + std::string(argv[1]) + "-" + std::string(argv[5])); 
 
-  std::cout << "Loading binary of input vals...\n";
+  //std::cout << "Loading binary of input vals...\n";
   load_binary(input_vals, kInputSize, data_dir + "/inputVals-" + std::string(argv[1]) + "-" + std::string(argv[5])); 
 
-  std::cout << "Loading binary of query keys...\n";
+  //std::cout << "Loading binary of query keys...\n";
   load_binary(query_keys, kInputSize, data_dir + "/queryKeys-" + std::string(argv[1]) + "-" + std::string(argv[3]) + "-" + std::string(argv[4]) + "-" + std::string(argv[5])); 
 
 #if 0
@@ -111,21 +129,24 @@ int main(int argc, char** argv)
   }
 #endif
 
-  std::cout << "Inserting pairs...\n";
-  using HashTable = tbb::concurrent_hash_map<unsigned int, unsigned int, MyHashCompare>;
-  HashTable table(kInputSize*loadFactor);
+  //std::cout << "Inserting pairs...\n";
+  using PairType = std::pair<unsigned int, unsigned int>;
+  using HashTable = tbb::concurrent_unordered_map<unsigned int, unsigned int, tbb_hash<unsigned int>, std::equal_to<unsigned int>, tbb::scalable_allocator<PairType> >;
+  HashTable table(kInputSize*loadFactor, tbb_hash<unsigned int>(), std::equal_to<unsigned int>(), tbb::scalable_allocator<PairType>());
+  //HashTable table(kInputSize*loadFactor);
   tbb::auto_partitioner ap;
   start = tbb::tick_count::now();
   tbb::parallel_for (
     tbb::blocked_range<unsigned int>(0, kInputSize),
     [&](tbb::blocked_range<unsigned int> r)
 	{
-          HashTable::accessor a;
+          //HashTable::accessor a;
 	  for (auto i = r.begin(); i != r.end(); ++i)
 	  {
-            table.insert(a, input_keys[i]);
-            a->second = input_vals[i];
-            a.release();
+            //table.insert(a, input_keys[i]);
+            //a->second = input_vals[i];
+            //a.release();
+	    table.insert({input_keys[i], input_vals[i]});
           }
         }
      , ap
@@ -135,18 +156,20 @@ int main(int argc, char** argv)
   //std::cout << "Sort: elapsed : " << sortTime/1000 << "\n";
   
 
-  std::cout << "Querying keys...\n";
+  //std::cout << "Querying keys...\n";
   start = tbb::tick_count::now();
   tbb::parallel_for (
     tbb::blocked_range<unsigned int>(0, kInputSize),
     [&](tbb::blocked_range<unsigned int> r)
 	{
-          HashTable::const_accessor a;
+          //HashTable::const_accessor a;
 	  for (auto i = r.begin(); i != r.end(); ++i)
 	  {
-            if (table.find(a, query_keys[i]))
-              query_vals[i] = a->second;
-            a.release();
+	    auto result = table.find(query_keys[i]);
+            if (result != table.end())
+	      query_vals[i] = result->second; 
+              //query_vals[i] = a->second;
+            //a.release();
           }
         }
      , ap
@@ -165,15 +188,18 @@ int main(int argc, char** argv)
     printf("No errors found, test passes\n");
 #endif
 
- 
+  //std::cout << "Search: elapsed : " << searchTime/1000 << "\n";
+  std::cout << insertTime << "\n";
+  std::cout << queryTime << "\n";
+
+  table.clear();
+
+  /*
   delete [] query_keys;
   delete [] query_vals;
-
-  //std::cout << "Search: elapsed : " << searchTime/1000 << "\n";
-  std::cout << insertTime << "," << queryTime << "\n";
-
   delete [] input_keys;
   delete [] input_vals;
+  */
 
   return 0;
 }

@@ -709,7 +709,6 @@ namespace hashfight
       subTableStart += subTableSize; 
        
  
-      #if 1 
       if (numActiveEntries < 1000000 && 
           numActiveEntries > 0 && 
           numActiveEntries < (hash_table.size-subTableStart))
@@ -718,7 +717,9 @@ namespace hashfight
         UInt32HandleType tempKeys, tempVals;
 
         vtkm::cont::Timer<DeviceAdapter> copyTimer;
-        Algorithm::CopyIf(keys,
+      
+#if VTKM_DEVICE_ADAPTER == VTKM_DEVICE_ADAPTER_CUDA	
+	Algorithm::CopyIf(keys,
 		          isActive,
                           tempKeys,
                           (vtkm::Id)numActiveEntries);
@@ -726,6 +727,14 @@ namespace hashfight
 		          isActive,
                           tempVals,
                           (vtkm::Id)numActiveEntries);
+#elif VTKM_DEVICE_ADAPTER == VTKM_DEVICE_ADAPTER_TBB
+	Algorithm::CopyIf(keys,
+		          isActive,
+                          tempKeys);
+        Algorithm::CopyIf(vals,
+		          isActive,
+                          tempVals);
+#endif
         elapsedTime += copyTimer.GetElapsedTime();
 
         vtkm::cont::Timer<DeviceAdapter> sortTimer;
@@ -745,7 +754,6 @@ namespace hashfight
 
         break;
       } 
-      #endif
 
       subTableSize = (vtkm::UInt32)(hash_table.size_factor * numActiveEntries);
       totalSpaceUsed += subTableSize;
@@ -802,8 +810,8 @@ namespace hashfight
 
       //std::cout << "Starting ProbeForKey\n";
 
-      const vtkm::UInt32 minSize = 994000000;
-      //const vtkm::UInt32 minSize = subTableSize;
+      //const vtkm::UInt32 minSize = 994000000;
+      const vtkm::UInt32 minSize = subTableSize;
       vtkm::Id numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       const vtkm::UInt32 chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);
       //std::cout << "numPasses = " << numPasses << "\n";
@@ -1083,6 +1091,7 @@ int main(int argc, char** argv)
 
   //printf("(HashFight) Querying with %.3f chance of failed queries...\n", failure_rate);
   //Query the hash table
+  //std::cout << "(HashFight) Querying hash table...\n";
   hfQueryTime = hashfight::Query<DeviceAdapter>(queryKeys,
                                   ht,
                                   queryVals);
