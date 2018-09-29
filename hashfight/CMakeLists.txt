@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.6)
-#set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 11)
 set(PROJECT_NAME "hashing-benchmark")
 
 project(${PROJECT_NAME})
 
-
 #SET THESE RELATIVE TO YOUR SYSTEM:
 set(VTKm_DIR "/home/users/blessley/test-apurna/lib/cmake/vtkm-1.2") #vtkm build dir
+
 set(SOURCES random_numbers.cpp mt19937ar.cpp)
 
 #Finds the VTK-m package
