@@ -160,10 +160,15 @@ for k in $sizes; do #num key-val pairs
         rm $filename_trial_times
       fi
       touch $filename_trial_times
+      filename_temp_results="${timings_OUT_DIR}/temp"
+      touch $filename_temp_results
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${hashfight_SRC}/run-hashfight.sh $k $l $f $failure_trials $counter >> $filename_trial_times 2>&1
-        ((counter++))
+        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA > $filename_temp_results 2>&1
+        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+	paste -d, -s $filename_temp_results >> $filename_trial_times
+      ((counter++))
       done
       cat $filename_trial_times | \
       awk -F',' '{for (i=1;i<=NF;i++){a[i]+=$i;}} END {printf "%.4f", a[1]/NR; for (i=2;i<=NF;i++){printf ",%.4f", a[i]/NR};}' \
@@ -190,9 +195,14 @@ for k in $sizes; do #num key-val pairs
         rm $filename_trial_times
       fi
       touch $filename_trial_times
+      filename_temp_results="${timings_OUT_DIR}/temp"
+      touch $filename_temp_results
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${hashfight_SRC}/run-hashfight.sh $k $l $f $failure_trials $counter >> $filename_trial_times 2>&1
+        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA > $filename_temp_results 2>&1
+        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+	paste -d, -s $filename_temp_results >> $filename_trial_times
         ((counter++))
       done
       cat $filename_trial_times | \
