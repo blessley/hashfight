@@ -51,6 +51,7 @@ COMMENT
 sizes='1450000000'
 factors='1.03'
 #: <<'COMMENT'
+printf "CONFIG: $sizes pairs, $factors load factor, variable failure rates\n" 
 #run through all the failures for a size-factor configuration:
 for k in $sizes; do #num key-val pairs
   for l in $factors; do #load factor
@@ -85,6 +86,7 @@ done
 factors='1.50'
 failure='0'
 #: <<'COMMENT'
+printf "CONFIG: $failure-10 failure rate, $factors load factor, variable sizes of pairs\n" 
 #run through all the sizes for a factor-failure configuration:
 for l in $factors; do #load factors
   for f in $failure; do #failure rates
@@ -113,4 +115,4 @@ for l in $factors; do #load factors
     done
   done
 done 
-COMMENT
+#COMMENT
