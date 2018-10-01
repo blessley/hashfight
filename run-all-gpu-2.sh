@@ -16,7 +16,7 @@ all_trials=10
 
 sizes='900000000'
 factors='2.0'
-#: <<'COMMENT'
+: <<'COMMENT'
 #run through all the failures for a size-factor configuration:
 for k in $sizes; do #num key-val pairs
   for l in $factors; do #load factor
@@ -45,9 +45,10 @@ for k in $sizes; do #num key-val pairs
     done
   done
 done 
-#COMMENT
+COMMENT
 
-factors='1.03 1.10 1.15 1.25 1.40 1.50 1.60 1.75 1.90 2.0'
+#factors='1.03 1.10 1.15 1.25 1.40 1.50 1.60 1.75 1.90 2.0'
+factors='1.50 1.60 1.75 1.90 2.0'
 sizes='900000000'
 failure='0'
 # : <<'COMMENT'
