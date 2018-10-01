@@ -46,7 +46,7 @@ COMMENT
 
 factors='2.0'
 failure='0'
-#: <<'COMMENT'
+: <<'COMMENT'
 #run through all the sizes for a factor-failure configuration:
 for l in $factors; do #load factors
   for f in $failure; do #failure rates
@@ -75,11 +75,11 @@ for l in $factors; do #load factors
     done
   done
 done 
-#COMMENT
+COMMENT
 
 sizes='500000000'
 factors='1.03'
-: <<'COMMENT'
+#: <<'COMMENT'
 #run through all the failures for a size-factor configuration:
 for k in $sizes; do #num key-val pairs
   for l in $factors; do #load factor
@@ -108,12 +108,12 @@ for k in $sizes; do #num key-val pairs
     done
   done
 done 
-COMMENT
+#COMMENT
 
 
 sizes='500000000'
 factors='2.0'
-: <<'COMMENT'
+#: <<'COMMENT'
 #run through all the failures for a size-factor configuration:
 for k in $sizes; do #num key-val pairs
   for l in $factors; do #load factor
@@ -142,12 +142,12 @@ for k in $sizes; do #num key-val pairs
     done
   done
 done 
-COMMENT
+#COMMENT
 
 factors='1.03 1.10 1.15 1.25 1.40 1.50 1.60 1.75 1.90 2.0'
 sizes='500000000'
 failure='0'
-: <<'COMMENT'
+#: <<'COMMENT'
 #run through all the factors for a size-failure configuration:
 for k in $sizes; do #num key-val pairs
   for f in $failure; do #failure rates
@@ -177,12 +177,12 @@ for k in $sizes; do #num key-val pairs
     done
   done
 done 
-COMMENT
+#COMMENT
 
 factors='1.03 1.10 1.15 1.25 1.40 1.50 1.60 1.75 1.90 2.0'
 sizes='500000000'
 failure='5'
-: <<'COMMENT'
+#: <<'COMMENT'
 #run through all the factors for a size-failure configuration:
 for k in $sizes; do #num key-val pairs
   for f in $failure; do #failure rates
@@ -212,6 +212,6 @@ for k in $sizes; do #num key-val pairs
     done
   done
 done 
-COMMENT
+#COMMENT
 
 
