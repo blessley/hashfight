@@ -6,7 +6,7 @@ hashfight_BUILD="/home/users/blessley/build-hash-fight" #HashFight build dir
 thrust_BUILD="/home/users/blessley/HashFight/thrust" #Sort+Search thrust benchmark dir
 cudpp_BUILD="/home/users/blessley/build-cudpp-benchmark" #cudpp benchmark build dir
 hashing_DATA="/home/users/samuelli/Datasets/hashing-data" #data dir
-timings_OUT_DIR="/home/users/blessley/hashing-timings/gpu-10-01" #dir for output timing files
+timings_OUT_DIR="/home/users/blessley/hashing-timings/gpu-10-02" #dir for output timing files
 
 factors='1.03'
 failure='0'

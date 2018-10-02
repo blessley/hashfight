@@ -715,6 +715,8 @@ namespace hashfight
       {
         //std::cout << "remaining table slots = " << hash_table.size-subTableStart << "\n";
         UInt32HandleType tempKeys, tempVals;
+        tempKeys.PrepareForOutput((vtkm::Id)numActiveEntries, DeviceAdapter());
+        tempVals.PrepareForOutput((vtkm::Id)numActiveEntries, DeviceAdapter());
 
         vtkm::cont::Timer<DeviceAdapter> copyTimer;
       
@@ -762,7 +764,7 @@ namespace hashfight
       //std::cerr << "==================================================\n";
 
     }  //End of while loop
-    
+   
     //std::cout << "Total space used: " << totalSpaceUsed << "\n";
     //std::cout << "Total allocated space: " << hash_table.size << "\n";
 
