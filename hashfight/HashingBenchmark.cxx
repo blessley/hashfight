@@ -716,7 +716,12 @@ namespace hashfight
         //std::cout << "remaining table slots = " << hash_table.size-subTableStart << "\n";
         UInt32HandleType tempKeys, tempVals;
 
-        vtkm::cont::Timer<DeviceAdapter> copyTimer;
+#if VTKM_DEVICE_ADAPTER == VTKM_DEVICE_ADAPTER_CUDA	
+	tempKeys.PrepareForOutput((vtkm::Id)numActiveEntries, DeviceAdapter()); 
+	tempVals.PrepareForOutput((vtkm::Id)numActiveEntries, DeviceAdapter());
+#endif
+      
+      	vtkm::cont::Timer<DeviceAdapter> copyTimer;
       
 #if VTKM_DEVICE_ADAPTER == VTKM_DEVICE_ADAPTER_CUDA	
 	Algorithm::CopyIf(keys,
@@ -763,6 +768,7 @@ namespace hashfight
 
     }  //End of while loop
     
+    std::cout << numLoops << "\n";
     //std::cout << "Total space used: " << totalSpaceUsed << "\n";
     //std::cout << "Total allocated space: " << hash_table.size << "\n";
 
