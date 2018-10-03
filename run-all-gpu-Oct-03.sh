@@ -17,7 +17,7 @@ all_trials=10
 
 factors='1.50'
 failure='0'
-#: <<'COMMENT'
+: <<'COMMENT'
 printf "CONFIG: $failure-10 failure rate, $factors load factor, variable sizes of pairs\n" 
 #run through all the sizes for a factor-failure configuration:
 for l in $factors; do #load factors
@@ -47,7 +47,7 @@ for l in $factors; do #load factors
     done
   done
 done 
-#COMMENT
+COMMENT
 
 factors='1.03 1.10 1.15 1.25 1.40 1.50 1.60 1.75 1.90 2.0'
 sizes='900000000'
