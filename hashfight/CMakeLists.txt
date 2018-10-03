@@ -5,7 +5,12 @@ set(PROJECT_NAME "hashing-benchmark")
 project(${PROJECT_NAME})
 
 #SET THESE RELATIVE TO YOUR SYSTEM:
-set(VTKm_DIR "/glade/work/shaomeng/v100/vtkm-master/lib/cmake/vtkm-1.2" )
+set(VTKm_DIR "/glade/work/shaomeng/XeonGold/vtkm-build/lib/cmake/vtkm-1.2" )
+
+# Set TBB directories
+set( TBB_INCLUDE_DIR "/glade/u/home/shaomeng/Install/tbb2018_20180618oss/include" )
+set( TBB_LIBRARY_DEBUG  "/glade/u/home/shaomeng/Install/tbb2018_20180618oss/lib/intel64/gcc4.7/libtbb_debug.so" )
+set( TBB_LIBRARY_RELEASE  "/glade/u/home/shaomeng/Install/tbb2018_20180618oss/lib/intel64/gcc4.7/libtbb.so" )
 
 set(SOURCES random_numbers.cpp mt19937ar.cpp)
 

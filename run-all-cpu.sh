@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #SET THESE RELATIVE TO YOUR SYSTEM:
-hashfight_SRC="/home/users/blessley/HashFight" #HashFight source dir
-hashfight_BUILD="/home/users/blessley/build-hash-fight" #HashFight build dir
-thrust_BUILD="/home/users/blessley/HashFight/thrust-tbb" #Sort+Search thrust tbb benchmark dir
-unordered_map_BUILD="/home/users/blessley/HashFight/unordered-map" #tbb benchmark build dir
-hashing_DATA="/home/users/samuelli/Datasets/hashing-data" #data dir
-timings_OUT_DIR="/home/users/blessley/hashing-timings/cpu-09-28" #dir for output timing files
+hashfight_SRC="/glade/work/shaomeng/XeonGold/hashfight/hashfight"
+hashfight_BUILD="/glade/work/shaomeng/XeonGold/hashfight/hashfight/build"
+thrust_BUILD="/glade/work/shaomeng/XeonGold/hashfight/thrust-tbb"
+unordered_map_BUILD="/glade/work/shaomeng/XeonGold/hashfight/unordered-map"
+hashing_DATA="/glade/scratch/shaomeng/hashing-data" #HashFight data dir
+timings_OUT_DIR="/glade/work/shaomeng/XeonGold/hashfight/results/Oct02-tbb" #dir for output timing files
 
 factors='1.03'
 failure='0'
