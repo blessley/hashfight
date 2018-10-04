@@ -816,8 +816,8 @@ namespace hashfight
 
       //std::cout << "Starting ProbeForKey\n";
 
-      //const vtkm::UInt32 minSize = 994000000;
-      const vtkm::UInt32 minSize = subTableSize;
+      const vtkm::UInt32 minSize = 1024000000;
+      //const vtkm::UInt32 minSize = subTableSize;
       vtkm::Id numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       const vtkm::UInt32 chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);
       //std::cout << "numPasses = " << numPasses << "\n";
