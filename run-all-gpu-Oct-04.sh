@@ -4,7 +4,7 @@
 hashfight_SRC="/glade/work/shaomeng/v100/hashfight" #HashFight source dir
 hashfight_BUILD="/glade/work/shaomeng/v100/hashfight/hashfight/build"
 hashing_DATA="/glade/scratch/shaomeng/hashing-data" #HashFight data dir
-timings_OUT_DIR="/glade/work/shaomeng/v100/hashfight/Oct04" #dir for output timing files
+timings_OUT_DIR="/glade/work/shaomeng/v100/hashfight/results/Oct04" #dir for output timing files
 
 thrust_BUILD="/glade/work/shaomeng/v100/hashfight/thrust"
 cudpp_BUILD="/glade/work/shaomeng/v100/hashfight/cuckoo/build"
