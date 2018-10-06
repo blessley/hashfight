@@ -4,14 +4,24 @@
 #include "tbb/parallel_for.h"
 #include "tbb/tick_count.h"
 #include "tbb/scalable_allocator.h"
+#include "tbb/task_scheduler_init.h"
 
 #include <functional>
+#include <cstdlib>
 #include <unordered_map>
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <stdio.h>
 #include <utility>
+
+
+#define __BUILDING_TBB_VERSION__ 
+
+#define TBB_PREVIEW_GLOBAL_CONTROL 1
+#include "tbb/global_control.h"
+
+
 
 //Signifies that a query key was not found.
 constexpr unsigned int keyNotFound = 0xffffffffu;
@@ -93,6 +103,25 @@ struct KeyCompare
 
 int main(int argc, char** argv)
 {
+
+  
+#ifdef __BUILDING_TBB_VERSION__
+  //Manually set the number of TBB threads invoked for this program
+  size_t parallelism = tbb::task_scheduler_init::default_num_threads();
+  printf("Default num threads used by TBB = %ld\n", parallelism);
+  size_t num = tbb::global_control::active_value(tbb::global_control::max_allowed_parallelism);
+  printf("Max allowed TBB parallelism = %ld\n", num);
+  char* numThreads = argv[7];
+  if(numThreads == NULL)
+  {
+     printf("Define NUM_TBB_THREADS\n");
+     exit(1);
+  }
+  parallelism = std::atoi(numThreads);
+  tbb::global_control c(tbb::global_control::max_allowed_parallelism, parallelism);
+  num = tbb::global_control::active_value( tbb::global_control::max_allowed_parallelism );
+  printf("New max allowed TBB parallelism = %ld\n", num);  
+#endif
 
 
   const std::string data_dir(argv[6]);
