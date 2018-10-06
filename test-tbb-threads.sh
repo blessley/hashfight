@@ -9,8 +9,8 @@ hashing_DATA="/glade/scratch/shaomeng/hashing-data" #HashFight data dir
 timings_OUT_DIR="/glade/work/shaomeng/XeonGold/hashfight/results/Oct05-test-tbb" #dir for output timing files
 
 
-k='50000000'
-l='2.0'
+k='1450000000'
+l='1.03'
 f='0'
 failure_trials='10'
 counter='0'
@@ -23,3 +23,7 @@ ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $
 ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS
 
 
+NUM_TBB_THREADS='36'
+
+${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS
+${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS
