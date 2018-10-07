@@ -661,10 +661,10 @@ namespace hashfight
       debug::HashFightDebug(hashCounts, "hashCounts");
       #endif
  
-      //minSize = 1000000;
       
       //numPasses = 1;
       #if 1
+      minSize = 1024000000;
       numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);;
       if (subTableSize <= minSize)
