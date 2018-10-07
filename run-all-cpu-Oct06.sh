@@ -22,7 +22,7 @@ for l in $factors; do #load factors
     for k in {50000000..1450000000..50000000}; do #num key-val pairs
       filename_trial_times="${timings_OUT_DIR}/${k}-${l}-${f}-${failure_trials}"
       if [ -f "$filename_trial_times" ]; then
-        rm $filename_trial_times
+        rm -f $filename_trial_times
       fi
       touch $filename_trial_times
       filename_temp_results="${timings_OUT_DIR}/temp"
@@ -55,7 +55,7 @@ for l in $factors; do #load factors
     for k in {50000000..1450000000..50000000}; do #num key-val pairs
       filename_trial_times="${timings_OUT_DIR}/${k}-${l}-${f}-${failure_trials}"
       if [ -f "$filename_trial_times" ]; then
-        rm $filename_trial_times
+        rm -f $filename_trial_times
       fi
       touch $filename_trial_times
       filename_temp_results="${timings_OUT_DIR}/temp"
@@ -90,7 +90,7 @@ for k in $sizes; do #num key-val pairs
     for l in $factors; do #load factors
       filename_trial_times="${timings_OUT_DIR}/${k}-${l}-${f}-${failure_trials}"
       if [ -f "$filename_trial_times" ]; then
-        rm $filename_trial_times
+        rm -f $filename_trial_times
       fi
       touch $filename_trial_times
       filename_temp_results="${timings_OUT_DIR}/temp"
@@ -124,7 +124,7 @@ for k in $sizes; do #num key-val pairs
     for f in {0..9}; do #failure rates
       filename_trial_times="${timings_OUT_DIR}/${k}-${l}-${f}-${failure_trials}"
       if [ -f "$filename_trial_times" ]; then
-        rm $filename_trial_times
+        rm -f $filename_trial_times
       fi
       touch $filename_trial_times
       filename_temp_results="${timings_OUT_DIR}/temp"
@@ -158,7 +158,7 @@ for k in $sizes; do #num key-val pairs
     for f in {0..9}; do #failure rates
       filename_trial_times="${timings_OUT_DIR}/${k}-${l}-${f}-${failure_trials}"
       if [ -f "$filename_trial_times" ]; then
-        rm $filename_trial_times
+        rm -f $filename_trial_times
       fi
       touch $filename_trial_times
       filename_temp_results="${timings_OUT_DIR}/temp"
@@ -193,7 +193,7 @@ for k in $sizes; do #num key-val pairs
     for l in $factors; do #load factors
       filename_trial_times="${timings_OUT_DIR}/${k}-${l}-${f}-${failure_trials}"
       if [ -f "$filename_trial_times" ]; then
-        rm $filename_trial_times
+        rm -f $filename_trial_times
       fi
       touch $filename_trial_times
       filename_temp_results="${timings_OUT_DIR}/temp"
