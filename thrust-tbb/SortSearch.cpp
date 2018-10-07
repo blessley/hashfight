@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 
 #ifdef __BUILDING_TBB_VERSION__
   //Manually set the number of TBB threads invoked for this program
-  char* numThreads = argv[7];
+  char* numThreads = argv[6];
   if(numThreads == NULL)
   {
      printf("Define NUM_TBB_THREADS\n");
