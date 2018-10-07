@@ -583,8 +583,8 @@ namespace hashfight
       hash_table.sub_table_starts.push_back(subTableSize); 
 
       
-      //vtkm::UInt32 minSize = 994000000;
-      vtkm::UInt32 minSize = subTableSize;
+      vtkm::UInt32 minSize = 261500000;
+      //vtkm::UInt32 minSize = subTableSize;
       vtkm::Id numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       vtkm::UInt32 chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);;
       //std::cout << "numPasses = " << numPasses << "\n";
@@ -661,10 +661,11 @@ namespace hashfight
       debug::HashFightDebug(hashCounts, "hashCounts");
       #endif
  
-      //minSize = 1000000;
       
       //numPasses = 1;
       #if 1
+      minSize = 261500000;
+      //minSize = subTableSize;
       numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);;
       if (subTableSize <= minSize)
@@ -812,8 +813,8 @@ namespace hashfight
 
       //std::cout << "Starting ProbeForKey\n";
 
-      //const vtkm::UInt32 minSize = 994000000;
-      const vtkm::UInt32 minSize = subTableSize;
+      const vtkm::UInt32 minSize = 261500000;
+      //const vtkm::UInt32 minSize = subTableSize;
       vtkm::Id numPasses = (vtkm::Id)vtkm::Ceil(subTableSize / (vtkm::Float32)minSize);
       const vtkm::UInt32 chunkSize = (vtkm::UInt32)vtkm::Ceil(subTableSize / (vtkm::Float32)numPasses);
       //std::cout << "numPasses = " << numPasses << "\n";
@@ -928,8 +929,19 @@ int main(int argc, char** argv)
 {
   if (argc < 2)
     return -1;
+ 
+#ifdef __BUILDING_TBB_VERSION__
+  //Manually set the number of TBB threads invoked for this program
+  char* numThreads = argv[7];
+  if(numThreads == NULL)
+  {
+     printf("Define NUM_TBB_THREADS\n");
+     exit(1);
+  }
+  int parallelism = std::atoi(numThreads);
+  tbb::global_control c(tbb::global_control::max_allowed_parallelism, parallelism);
+#endif
 
-  
   std::string data_dir(argv[6]);
 
 #if 0

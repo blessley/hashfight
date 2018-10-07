@@ -5,6 +5,11 @@
 #include "tbb/tick_count.h"
 #include "tbb/scalable_allocator.h"
 
+#define __BUILDING_TBB_VERSION__ 
+
+#define TBB_PREVIEW_GLOBAL_CONTROL 1
+#include "tbb/global_control.h"
+
 #include <functional>
 #include <unordered_map>
 #include <iostream>
@@ -93,6 +98,18 @@ struct KeyCompare
 
 int main(int argc, char** argv)
 {
+
+  #ifdef __BUILDING_TBB_VERSION__
+  //Manually set the number of TBB threads invoked for this program
+  char* numThreads = argv[7];
+  if(numThreads == NULL)
+  {
+     printf("Define NUM_TBB_THREADS\n");
+     exit(1);
+  }
+  int parallelism = std::atoi(numThreads);
+  tbb::global_control c(tbb::global_control::max_allowed_parallelism, parallelism);
+#endif
 
 
   const std::string data_dir(argv[6]);

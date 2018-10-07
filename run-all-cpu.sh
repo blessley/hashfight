@@ -6,14 +6,17 @@ hashfight_BUILD="/home/users/blessley/build-hash-fight" #HashFight build dir
 thrust_BUILD="/home/users/blessley/HashFight/thrust-tbb" #Sort+Search thrust tbb benchmark dir
 unordered_map_BUILD="/home/users/blessley/HashFight/unordered-map" #tbb benchmark build dir
 hashing_DATA="/home/users/samuelli/Datasets/hashing-data" #data dir
-timings_OUT_DIR="/home/users/blessley/hashing-timings/cpu-10-01" #dir for output timing files
+timings_OUT_DIR="/home/users/blessley/hashing-timings/cpu-10-07" #dir for output timing files
+
+
+NUM_TBB_THREADS=72
 
 factors='1.03'
 failure='0'
 failure_trials=10
 all_trials=10
 
-: <<'COMMENT'
+#: <<'COMMENT'
 #run through all the sizes for a factor-failure configuration:
 for l in $factors; do #load factors
   for f in $failure; do #failure rates
@@ -29,9 +32,9 @@ for l in $factors; do #load factors
       touch $filename_temp_results
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA > $filename_temp_results 2>&1
-        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
-        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  > $filename_temp_results 2>&1
+        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
+        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
 	paste -d, -s $filename_temp_results >> $filename_trial_times
 	((counter++))
       done
@@ -42,7 +45,7 @@ for l in $factors; do #load factors
     done
   done
 done 
-COMMENT
+#COMMENT
 
 
 factors='1.50'
@@ -63,9 +66,9 @@ for l in $factors; do #load factors
       touch $filename_temp_results
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA > $filename_temp_results 2>&1
-        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
-        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  > $filename_temp_results 2>&1
+        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
+        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
 	paste -d, -s $filename_temp_results >> $filename_trial_times
 	((counter++))
       done
@@ -97,9 +100,9 @@ for l in $factors; do #load factors
       touch $filename_temp_results
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA > $filename_temp_results 2>&1
-        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
-        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  > $filename_temp_results 2>&1
+        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
+        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
 	paste -d, -s $filename_temp_results >> $filename_trial_times
 	((counter++))
       done
@@ -130,9 +133,9 @@ for k in $sizes; do #num key-val pairs
       touch $filename_temp_results
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA > $filename_temp_results 2>&1
-        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
-        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  > $filename_temp_results 2>&1
+        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
+        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
 	paste -d, -s $filename_temp_results >> $filename_trial_times
         ((counter++))
       done
@@ -147,7 +150,7 @@ COMMENT
 
 
 sizes='500000000'
-factors='2.0'
+factors='1.50'
 : <<'COMMENT'
 #run through all the failures for a size-factor configuration:
 for k in $sizes; do #num key-val pairs
@@ -164,9 +167,9 @@ for k in $sizes; do #num key-val pairs
       touch $filename_temp_results
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA > $filename_temp_results 2>&1
-        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
-        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  > $filename_temp_results 2>&1
+        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
+        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
 	paste -d, -s $filename_temp_results >> $filename_trial_times
         ((counter++))
       done
@@ -182,7 +185,7 @@ COMMENT
 factors='1.03 1.10 1.15 1.25 1.40 1.50 1.60 1.75 1.90 2.0'
 sizes='500000000'
 failure='0'
-: <<'COMMENT'
+#: <<'COMMENT'
 #run through all the factors for a size-failure configuration:
 for k in $sizes; do #num key-val pairs
   for f in $failure; do #failure rates
@@ -199,9 +202,9 @@ for k in $sizes; do #num key-val pairs
       touch $filename_temp_results
       counter=0
       while [ $counter -lt $all_trials ]; do
-        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA > $filename_temp_results 2>&1
-        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
-        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  > $filename_temp_results 2>&1
+        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
+        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
 	paste -d, -s $filename_temp_results >> $filename_trial_times
 	((counter++))
       done
@@ -212,7 +215,7 @@ for k in $sizes; do #num key-val pairs
     done
   done
 done 
-COMMENT
+#COMMENT
 
 factors='1.03 1.10 1.15 1.25 1.40 1.50 1.60 1.75 1.90 2.0'
 sizes='500000000'
@@ -234,9 +237,9 @@ for k in $sizes; do #num key-val pairs
       touch $filename_temp_results
       counter=0
       while [ $counter -lt $all_trials ]; do 
-        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA > $filename_temp_results 2>&1
-        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
-        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA >> $filename_temp_results 2>&1
+        ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  > $filename_temp_results 2>&1
+        ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
+        ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS  >> $filename_temp_results 2>&1
 	paste -d, -s $filename_temp_results >> $filename_trial_times
         ((counter++))
       done
