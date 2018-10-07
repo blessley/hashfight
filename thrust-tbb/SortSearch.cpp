@@ -8,6 +8,12 @@
 #include <string>
 #include <fstream>
 
+#define __BUILDING_TBB_VERSION__ 
+
+#define TBB_PREVIEW_GLOBAL_CONTROL 1
+#include "tbb/global_control.h"
+
+
 template <typename T>
 void load_binary(const T * data,
                  const size_t length,
@@ -21,6 +27,18 @@ void load_binary(const T * data,
 
 int main(int argc, char** argv)
 {
+
+#ifdef __BUILDING_TBB_VERSION__
+  //Manually set the number of TBB threads invoked for this program
+  char* numThreads = argv[7];
+  if(numThreads == NULL)
+  {
+     printf("Define NUM_TBB_THREADS\n");
+     exit(1);
+  }
+  int parallelism = std::atoi(numThreads);
+  tbb::global_control c(tbb::global_control::max_allowed_parallelism, parallelism);
+#endif
 
 
   const std::string data_dir(argv[5]);

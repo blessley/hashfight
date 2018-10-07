@@ -6,5 +6,5 @@ TBB_LIB     = /glade/u/home/shaomeng/Install/tbb2018_20180618oss/lib/intel64/gcc
 THRUST_INCL = /glade/work/shaomeng/thrust
 
 SortSearch: SortSearch.cpp
-	$(COMPILER) $(FLAGS) SortSearch.cpp -o SortSearch -I${THRUST_INCL} -I${TBB_INCL} -L${TBB_LIB} -ltbb -lrt
+	$(COMPILER) $(FLAGS) SortSearch.cpp -o SortSearch -I${THRUST_INCL} -I${TBB_INCL} -L${TBB_LIB} -ltbb -lrt -Wl,-rpath=${LIB} 
 
