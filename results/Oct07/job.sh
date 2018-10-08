@@ -16,4 +16,4 @@ mkdir -p $TMPDIR
 module remove intel openmpi
 module load gnu/6.4.0 cuda cmake 
 
-srun /glade/work/shaomeng/v100/hashfight/results/Oct07/run-all-gpu-Oct-07.sh
+/glade/work/shaomeng/v100/hashfight/results/Oct07/run-all-gpu-Oct-07.sh
