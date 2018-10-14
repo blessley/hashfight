@@ -1,0 +1,10 @@
+Resetting modules to system default
+
+Inactive Modules:
+  1) ncarcompilers/0.4.1     2) netcdf/4.6.1
+
+
+Activating Modules:
+  1) ncarcompilers/0.4.1
+
+slurmstepd: error: *** JOB 1377295 ON casper11 CANCELLED AT 2018-10-12T13:16:18 DUE TO TIME LIMIT ***
