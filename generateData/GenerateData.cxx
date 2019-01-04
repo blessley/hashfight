@@ -51,9 +51,10 @@ int main(int argc, char** argv)
   int trialId = std::stoi(argv[1]); 
   const int failure_trials = 10; 
   float failure_rate = 0.0f;
-  const unsigned int maxInputSize = 1450000000;
-  const unsigned int minInputSize = 1300000000;
-  const unsigned int inputStepSize = 50000000;
+  const unsigned int million = 1000000;
+  const unsigned int maxInputSize = 1450 * million;
+  const unsigned int minInputSize = 50 * million
+  const unsigned int inputStepSize = minInputSize;
   std::string data_dir(argv[2]);
   //const int numSpaceUsagesToTest = 9;
   //const float kSpaceUsagesToTest[9] = {1.03f, 1.05f, 1.10f, 1.15f, 1.25f, 1.5f, 1.75f, 1.9f, 2.0f};
