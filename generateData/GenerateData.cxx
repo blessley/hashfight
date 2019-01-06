@@ -53,7 +53,7 @@ int main(int argc, char** argv)
   float failure_rate = 0.0f;
   const unsigned int million = 1000000;
   const unsigned int maxInputSize = 1450 * million;
-  const unsigned int minInputSize = 50 * million
+  const unsigned int minInputSize = 50 * million;
   const unsigned int inputStepSize = minInputSize;
   std::string data_dir(argv[2]);
   //const int numSpaceUsagesToTest = 9;
