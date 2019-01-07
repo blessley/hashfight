@@ -1,18 +1,18 @@
 cmake_minimum_required(VERSION 3.6)
-set (CMAKE_CXX_STANDARD 11)
-set(PROJECT_NAME "hashing-benchmark")
+set ( CMAKE_CXX_STANDARD 11)
+set( PROJECT_NAME "hashing-benchmark")
 
 project(${PROJECT_NAME})
 
 #SET THESE RELATIVE TO YOUR SYSTEM:
-set(VTKm_DIR "/glade/work/shaomeng/XeonGold/vtkm-build/lib/cmake/vtkm-1.2" )
+set( VTKm_DIR "/glade/work/shaomeng/XeonGold/vtkm-build/lib/cmake/vtkm-1.2" )
 
 # Set TBB directories
 set( TBB_INCLUDE_DIR "/glade/u/home/shaomeng/Install/tbb2018_20180618oss/include" )
 set( TBB_LIBRARY_DEBUG  "/glade/u/home/shaomeng/Install/tbb2018_20180618oss/lib/intel64/gcc4.7/libtbb_debug.so" )
 set( TBB_LIBRARY_RELEASE  "/glade/u/home/shaomeng/Install/tbb2018_20180618oss/lib/intel64/gcc4.7/libtbb.so" )
 
-set(SOURCES random_numbers.cpp mt19937ar.cpp)
+set( SOURCES random_numbers.cpp mt19937ar.cpp)
 
 #Finds the VTK-m package
 find_package(VTKm REQUIRED QUIET)

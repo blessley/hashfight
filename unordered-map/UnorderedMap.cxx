@@ -1,5 +1,5 @@
-//#include "tbb/concurrent_hash_map.h"
-#include "tbb/concurrent_unordered_map.h"
+#include "tbb/concurrent_hash_map.h"
+//#include "tbb/concurrent_unordered_map.h"
 #include "tbb/blocked_range.h"
 #include "tbb/parallel_for.h"
 #include "tbb/tick_count.h"
@@ -81,25 +81,22 @@ struct tbb_hash
   }
 };
 
-/*
-//Structure that defines hashing and comparison operations for key type.
-struct KeyHash 
+
+template<typename Key>
+struct MyHashCompare 
 {
-  static size_t hash(const unsigned int &x) 
+  static size_t hash(const Key& k) 
   {
-    return MurmurHash3(x);
+    return MurmurHash3(k);
+  }
+  
+  static bool equal(const Key& k1, const Key& k2) 
+  {
+    return k1==k2;
   }
 };
 
-struct KeyCompare
-{
-  //True if keys are equal
-  static bool equal(const unsigned int x, const unsigned int y) 
-  {
-    return x == y;
-  }
-};
-*/
+
 
 int main(int argc, char** argv)
 {
@@ -154,22 +151,26 @@ int main(int argc, char** argv)
 
   //std::cout << "Inserting pairs...\n";
   using PairType = std::pair<unsigned int, unsigned int>;
-  using HashTable = tbb::concurrent_unordered_map<unsigned int, unsigned int, tbb_hash<unsigned int>, std::equal_to<unsigned int>, tbb::scalable_allocator<PairType> >;
-  HashTable table(kInputSize*loadFactor, tbb_hash<unsigned int>(), std::equal_to<unsigned int>(), tbb::scalable_allocator<PairType>());
-  //HashTable table(kInputSize*loadFactor);
+  //using HashTable = tbb::concurrent_unordered_map<unsigned int, unsigned int, tbb_hash<unsigned int>, std::equal_to<unsigned int>, tbb::scalable_allocator<PairType> >;
+  using HashTable = tbb::concurrent_hash_map<unsigned int, unsigned int, MyHashCompare<unsigned int>, tbb::scalable_allocator<PairType> >;
+  //HashTable table(kInputSize*loadFactor, tbb_hash<unsigned int>(), std::equal_to<unsigned int>(), tbb::scalable_allocator<PairType>());
+  //auto tableSize = 4 * std::atoi(argv[7]);
+  auto tableSize = kInputSize * loadFactor;
+  HashTable table(tableSize, tbb::scalable_allocator<PairType>());
+  //HashTable table(tableSize);
   tbb::auto_partitioner ap;
   start = tbb::tick_count::now();
   tbb::parallel_for (
     tbb::blocked_range<unsigned int>(0, kInputSize),
     [&](tbb::blocked_range<unsigned int> r)
 	{
-          //HashTable::accessor a;
+          HashTable::accessor a;
 	  for (auto i = r.begin(); i != r.end(); ++i)
 	  {
-            //table.insert(a, input_keys[i]);
-            //a->second = input_vals[i];
-            //a.release();
-	    table.insert({input_keys[i], input_vals[i]});
+            table.insert(a, input_keys[i]);
+            a->second = input_vals[i];
+            a.release();
+	    //table.insert({input_keys[i], input_vals[i]});
           }
         }
      , ap
@@ -185,14 +186,16 @@ int main(int argc, char** argv)
     tbb::blocked_range<unsigned int>(0, kInputSize),
     [&](tbb::blocked_range<unsigned int> r)
 	{
-          //HashTable::const_accessor a;
+          HashTable::const_accessor a;
 	  for (auto i = r.begin(); i != r.end(); ++i)
 	  {
-	    auto result = table.find(query_keys[i]);
-            if (result != table.end())
-	      query_vals[i] = result->second; 
-              //query_vals[i] = a->second;
-            //a.release();
+	    auto result = table.find(a, query_keys[i]);
+	    //auto result = table.find(query_keys[i]);
+            //if (result != table.end())
+	    if (result)
+	      //query_vals[i] = result->second; 
+              query_vals[i] = a->second;
+            a.release();
           }
         }
      , ap

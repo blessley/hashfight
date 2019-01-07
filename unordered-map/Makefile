@@ -5,5 +5,6 @@ INCLUDE   = /glade/u/home/shaomeng/Install/tbb2018_20180618oss/include
 LIB       = /glade/u/home/shaomeng/Install/tbb2018_20180618oss/lib/intel64/gcc4.7
 
 UnorderedMap: UnorderedMap.cxx
+	LD_PRELOAD=libtbbmalloc_proxy.so.2 ;\
 	${COMPILER} ${FLAGS} -o UnorderedMap UnorderedMap.cxx -I${INCLUDE} -L${LIB} -ltbb -ltbbmalloc -ltbbmalloc_proxy -lrt -Wl,-rpath=${LIB} 
 
