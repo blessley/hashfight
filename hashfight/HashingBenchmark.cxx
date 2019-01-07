@@ -1,4 +1,3 @@
-
 //We first check if VTKM_DEVICE_ADAPTER is defined, so that when TBB and CUDA
 //includes this file we use the device adapter that they have set.
 #ifndef VTKM_DEVICE_ADAPTER
@@ -716,7 +715,12 @@ namespace hashfight
         //std::cout << "remaining table slots = " << hash_table.size-subTableStart << "\n";
         UInt32HandleType tempKeys, tempVals;
 
-        vtkm::cont::Timer<DeviceAdapter> copyTimer;
+#if VTKM_DEVICE_ADAPTER == VTKM_DEVICE_ADAPTER_CUDA	
+	tempKeys.PrepareForOutput((vtkm::Id)numActiveEntries, DeviceAdapter()); 
+	tempVals.PrepareForOutput((vtkm::Id)numActiveEntries, DeviceAdapter());
+#endif
+      
+      	vtkm::cont::Timer<DeviceAdapter> copyTimer;
       
 #if VTKM_DEVICE_ADAPTER == VTKM_DEVICE_ADAPTER_CUDA	
 	Algorithm::CopyIf(keys,
@@ -763,6 +767,7 @@ namespace hashfight
 
     }  //End of while loop
     
+    std::cout << numLoops << "\n";
     //std::cout << "Total space used: " << totalSpaceUsed << "\n";
     //std::cout << "Total allocated space: " << hash_table.size << "\n";
 
@@ -929,6 +934,19 @@ int main(int argc, char** argv)
 
   
   std::string data_dir(argv[6]);
+
+#ifdef __BUILDING_TBB_VERSION__
+  //Manually set the number of TBB threads invoked for this program
+  char* numThreads = argv[7];
+  if(numThreads == NULL)
+  {
+     printf("Define NUM_TBB_THREADS\n");
+     exit(1);
+  }
+  int parallelism = std::atoi(numThreads);
+  tbb::global_control c(tbb::global_control::max_allowed_parallelism, parallelism);
+#endif
+
 
 #if 0
   unsigned int* input_keys = NULL;

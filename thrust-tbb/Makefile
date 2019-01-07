@@ -6,5 +6,6 @@ TBB_LIB     = /usr/lib/x86_64-linux-gnu
 THRUST_INCL = /home/users/blessley/thrust
 
 SortSearch: SortSearch.cpp
-	$(COMPILER) $(FLAGS) SortSearch.cpp -o SortSearch -I${THRUST_INCL} -I${TBB_INCL} -L${TBB_LIB} -ltbb -lrt
+	LD_PRELOAD=libtbbmalloc_proxy.so.2 ;\
+	$(COMPILER) $(FLAGS) SortSearch.cpp -o SortSearch -I${THRUST_INCL} -I${TBB_INCL} -L${TBB_LIB} -ltbb -lrt -ltbbmalloc -ltbbmalloc_proxy
 

@@ -20,4 +20,11 @@
 
 #define VTKM_DEVICE_ADAPTER VTKM_DEVICE_ADAPTER_TBB
 
+#define __BUILDING_TBB_VERSION__
+
+#include "tbb/task_scheduler_init.h"
+#define TBB_PREVIEW_GLOBAL_CONTROL 1
+#include "tbb/global_control.h"
+
+
 #include "HashingBenchmark.cxx"
