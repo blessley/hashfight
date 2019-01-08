@@ -1,0 +1,23 @@
+Resetting modules to system default
+
+Inactive Modules:
+  1) ncarcompilers/0.4.1     2) netcdf/4.6.1
+
+
+Activating Modules:
+  1) ncarcompilers/0.4.1
+
+default num threads 72
+max allowed parallemism 72
+4
+4.20251
+2.81932
+94.1894
+8.95784
+default num threads 72
+max allowed parallemism 72
+4
+4.2084
+2.83987
+93.4375
+8.87628
