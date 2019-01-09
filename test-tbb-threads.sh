@@ -10,14 +10,14 @@ timings_OUT_DIR="/glade/work/shaomeng/XeonGold/hashfight/results/Jan06-test-tbb"
 
 
 k='1450000000'
-l='1.03'
+l='2.0'
 f='0'
 failure_trials='10'
 counter='0'
 
 #SET THE NUMBER OF TBB THREADS HERE:
 # (> cores = hyperthreading)
-NUM_TBB_THREADS='36'
+NUM_TBB_THREADS='72'
 
 #Test the number of TBB threads being used for each algorithm
 ${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS
