@@ -7,3 +7,4 @@ Inactive Modules:
 Activating Modules:
   1) ncarcompilers/0.4.1
 
+slurmstepd: error: *** JOB 2002048 ON casper04 CANCELLED AT 2019-01-09T22:07:26 ***
