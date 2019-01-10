@@ -768,7 +768,7 @@ namespace hashfight
 
     }  //End of while loop
     
-    std::cout << numLoops << "\n";
+    //std::cout << numLoops << "\n";
     //std::cout << "Total space used: " << totalSpaceUsed << "\n";
     //std::cout << "Total allocated space: " << hash_table.size << "\n";
 
@@ -938,10 +938,10 @@ int main(int argc, char** argv)
 
 #ifdef __BUILDING_TBB_VERSION__
     int parallelism = tbb::task_scheduler_init::default_num_threads();
-    printf( "default num threads %ld\n", parallelism );
+    //printf( "default num threads %ld\n", parallelism );
 
     size_t num = tbb::global_control::active_value( tbb::global_control::max_allowed_parallelism );
-    printf( "max allowed parallemism %ld\n", num );
+    //printf( "max allowed parallemism %ld\n", num );
     //Manually set the number of TBB threads invoked for this program
     char* numThreads = argv[7];
     if(numThreads == NULL)
