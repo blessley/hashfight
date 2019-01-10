@@ -1,0 +1,10 @@
+default num threads 72,max allowed parallemism 72,3,0.201383,0.108871,3.42369,0.310104,0.194669,0.718391
+default num threads 72,max allowed parallemism 72,1,0.0243135,0.0119294,133.419,6.61526,0.170425,0.0217812
+default num threads 72,max allowed parallemism 72,1,0.0235855,0.0117719,128.776,6.36445,0.165232,0.0220172
+default num threads 72,max allowed parallemism 72,1,0.0234942,0.0120619,132.908,6.34353,0.168166,0.0213395
+default num threads 72,max allowed parallemism 72,1,0.0240516,0.0121553,142.656,7.60559,0.177772,0.0213045
+default num threads 72,max allowed parallemism 72,1,0.0241891,0.0123132,121.669,5.62306,0.158681,0.0210882
+default num threads 72,max allowed parallemism 72,1,0.023991,0.0118691,124.482,6.3766,0.169763,0.0215618
+default num threads 72,max allowed parallemism 72,1,0.023866,0.0120914,116.953,5.69526,0.16112,0.0210234
+default num threads 72,max allowed parallemism 72,1,0.0243846,0.0120039,136.351,6.43792,0.160047,0.0211563
+default num threads 72,max allowed parallemism 72,1,0.0243819,0.0121784,133.355,6.52373,0.172592,0.0212334
