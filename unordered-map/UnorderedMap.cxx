@@ -1,5 +1,5 @@
-#include "tbb/concurrent_hash_map.h"
-//#include "tbb/concurrent_unordered_map.h"
+//#include "tbb/concurrent_hash_map.h"
+#include "tbb/concurrent_unordered_map.h"
 #include "tbb/blocked_range.h"
 #include "tbb/parallel_for.h"
 #include "tbb/tick_count.h"
@@ -151,12 +151,12 @@ int main(int argc, char** argv)
 
   //std::cout << "Inserting pairs...\n";
   using PairType = std::pair<unsigned int, unsigned int>;
-  //using HashTable = tbb::concurrent_unordered_map<unsigned int, unsigned int, tbb_hash<unsigned int>, std::equal_to<unsigned int>, tbb::scalable_allocator<PairType> >;
-  using HashTable = tbb::concurrent_hash_map<unsigned int, unsigned int, MyHashCompare<unsigned int>, tbb::scalable_allocator<PairType> >;
-  //HashTable table(kInputSize*loadFactor, tbb_hash<unsigned int>(), std::equal_to<unsigned int>(), tbb::scalable_allocator<PairType>());
+  using HashTable = tbb::concurrent_unordered_map<unsigned int, unsigned int, tbb_hash<unsigned int>, std::equal_to<unsigned int>, tbb::scalable_allocator<PairType> >;
+  //using HashTable = tbb::concurrent_hash_map<unsigned int, unsigned int, MyHashCompare<unsigned int>, tbb::scalable_allocator<PairType> >;
+  HashTable table(kInputSize*loadFactor, tbb_hash<unsigned int>(), std::equal_to<unsigned int>(), tbb::scalable_allocator<PairType>());
   //auto tableSize = 4 * std::atoi(argv[7]);
-  auto tableSize = kInputSize * loadFactor;
-  HashTable table(tableSize, tbb::scalable_allocator<PairType>());
+  //auto tableSize = kInputSize * loadFactor;
+  //HashTable table(tableSize, tbb::scalable_allocator<PairType>());
   //HashTable table(tableSize);
   tbb::auto_partitioner ap;
   start = tbb::tick_count::now();
@@ -164,13 +164,13 @@ int main(int argc, char** argv)
     tbb::blocked_range<unsigned int>(0, kInputSize),
     [&](tbb::blocked_range<unsigned int> r)
 	{
-          HashTable::accessor a;
+          //HashTable::accessor a;
 	  for (auto i = r.begin(); i != r.end(); ++i)
 	  {
-            table.insert(a, input_keys[i]);
-            a->second = input_vals[i];
-            a.release();
-	    //table.insert({input_keys[i], input_vals[i]});
+            //table.insert(a, input_keys[i]);
+            //a->second = input_vals[i];
+            //a.release();
+	    table.insert({input_keys[i], input_vals[i]});
           }
         }
      , ap
@@ -189,13 +189,13 @@ int main(int argc, char** argv)
           HashTable::const_accessor a;
 	  for (auto i = r.begin(); i != r.end(); ++i)
 	  {
-	    auto result = table.find(a, query_keys[i]);
-	    //auto result = table.find(query_keys[i]);
-            //if (result != table.end())
-	    if (result)
-	      //query_vals[i] = result->second; 
-              query_vals[i] = a->second;
-            a.release();
+	    //auto result = table.find(a, query_keys[i]);
+	    auto result = table.find(query_keys[i]);
+            if (result != table.end())
+	    //if (result)
+	      query_vals[i] = result->second; 
+              //query_vals[i] = a->second;
+            //a.release();
           }
         }
      , ap
