@@ -7,3 +7,4 @@ Inactive Modules:
 Activating Modules:
   1) ncarcompilers/0.4.1
 
+slurmstepd: error: *** JOB 2004274 ON casper04 CANCELLED AT 2019-01-11T15:00:56 DUE TO TIME LIMIT ***
