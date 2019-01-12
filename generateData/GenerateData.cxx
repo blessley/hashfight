@@ -48,16 +48,19 @@ int main(int argc, char** argv)
   unsigned int pool_size = 0;
   unsigned int* number_pool = NULL;
  
-  int trialId = std::stoi(argv[1]); 
+  int num_runs = std::stoi(argv[1]); 
   const int failure_trials = 10; 
   float failure_rate = 0.0f;
-  const unsigned int maxInputSize = 1450000000;
-  const unsigned int minInputSize = 1300000000;
-  const unsigned int inputStepSize = 50000000;
+  const unsigned int million = 1000000;
+  const unsigned int maxInputSize = 500 * million;
+  const unsigned int minInputSize = 500 * million;
+  const unsigned int inputStepSize = minInputSize;
   std::string data_dir(argv[2]);
   //const int numSpaceUsagesToTest = 9;
   //const float kSpaceUsagesToTest[9] = {1.03f, 1.05f, 1.10f, 1.15f, 1.25f, 1.5f, 1.75f, 1.9f, 2.0f};
-    std::cout << "---------------TrialId  " << argv[1] << "-----------------\n";
+  for (int r = 0; r < num_runs; r++)
+  {
+    std::cout << "---------------RunId  " << r << "-----------------\n";
     for (unsigned int kInputSize = minInputSize; kInputSize <= maxInputSize; kInputSize += inputStepSize)
     {
       std::cout << "Input Size = " << kInputSize << "\n";
@@ -80,14 +83,14 @@ int main(int argc, char** argv)
 
       std::cout << "Dumping binary of input keys\n";
       dump_binary(input_keys, kInputSize, data_dir + "/inputKeys-" + std::to_string(kInputSize) + 
-     					"-" + std::to_string(trialId));
+     					"-" + std::to_string(r));
 
       std::cout << "Dumping binary of input vals\n";
       dump_binary(input_vals, kInputSize, data_dir + "/inputVals-" + std::to_string(kInputSize) +   
- 				      "-" + std::to_string(trialId));
+ 				      "-" + std::to_string(r));
      
       //Randomly-generate the query keys
-      for (int failure = 0; failure < failure_trials; failure++)
+      for (int failure = 9; failure < failure_trials; failure++)
       {
          failure_rate = failure / (float)failure_trials;
          std::cout << "Failure Rate = " << failure_rate << "\n";
@@ -98,14 +101,15 @@ int main(int argc, char** argv)
          dump_binary(query_keys, kInputSize, data_dir + "/queryKeys-" + std::to_string(kInputSize) +
  				            "-" + std::to_string(failure) + "-" +
 				            std::to_string(failure_trials) + "-" +
-				            std::to_string(trialId));
+				            std::to_string(r));
          delete [] query_keys;
        } 
 
        delete [] number_pool;
        delete [] input_keys;
        delete [] input_vals;
-     } 
-  }
+     }
+   } 
+}
 
 
