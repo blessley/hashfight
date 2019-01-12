@@ -186,7 +186,7 @@ int main(int argc, char** argv)
     tbb::blocked_range<unsigned int>(0, kInputSize),
     [&](tbb::blocked_range<unsigned int> r)
 	{
-          HashTable::const_accessor a;
+          //HashTable::const_accessor a;
 	  for (auto i = r.begin(); i != r.end(); ++i)
 	  {
 	    //auto result = table.find(a, query_keys[i]);
