@@ -3,7 +3,7 @@
 #SBATCH -n 1
 #SBATCH -c 72
 #SBATCH --mem=370G
-#SBATCH -t 8:00:00
+#SBATCH -t 4:00:00
 #SBATCH -A nvst0001
 #SBATCH -p dav
 #SBATCH -C skylake
