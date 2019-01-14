@@ -195,7 +195,7 @@ namespace hashfight
     vtkm::UInt32 ChunkEnd;
 
   public:
-    typedef void ControlSignature(FieldIn<>, FieldOut<>);
+    typedef void ControlSignature(FieldIn, FieldOut);
     typedef void ExecutionSignature(WorkIndex, _1, _2);
 
     static constexpr vtkm::UInt32 FNV1A_OFFSET = 2166136261;
@@ -277,7 +277,7 @@ namespace hashfight
     vtkm::UInt32 SubTableStart;
 
   public:
-    typedef void ControlSignature(FieldIn<>, FieldIn<>, WholeArrayInOut<>);
+    typedef void ControlSignature(FieldIn, FieldIn, WholeArrayInOut);
     typedef void ExecutionSignature(WorkIndex, _1, _2, _3);
 
     VTKM_CONT
@@ -302,7 +302,7 @@ namespace hashfight
     vtkm::UInt32 SubTableSize;
 
   public:
-    typedef void ControlSignature(FieldIn<>, FieldInOut<>, WholeArrayIn<>, WholeArrayIn<>);
+    typedef void ControlSignature(FieldIn, FieldInOut, WholeArrayIn, WholeArrayIn);
     typedef void ExecutionSignature(WorkIndex, _1, _2, _3, _4);
 
     VTKM_CONT
@@ -371,7 +371,7 @@ namespace hashfight
     InputPortalType Constants;
 
   public:
-    typedef void ControlSignature(FieldIn<>, FieldIn<>, WholeArrayIn<>, WholeArrayInOut<>);
+    typedef void ControlSignature(FieldIn, FieldIn, WholeArrayIn, WholeArrayInOut);
     typedef void ExecutionSignature(WorkIndex, _1, _2, _3, _4);
 
     VTKM_CONT
@@ -429,7 +429,7 @@ namespace hashfight
     InputPortalType Constants;
  
   public:
-    typedef void ControlSignature(FieldIn<>, WholeArrayIn<>, WholeArrayInOut<>);
+    typedef void ControlSignature(FieldIn, WholeArrayIn, WholeArrayInOut);
     typedef void ExecutionSignature(WorkIndex, _1, _2, _3);
  
     VTKM_CONT
@@ -485,7 +485,7 @@ namespace hashfight
     InputPortalType Constants;
 
   public:
-    typedef void ControlSignature(FieldIn<>, FieldInOut<>, WholeArrayIn<>, WholeArrayInOut<>);
+    typedef void ControlSignature(FieldIn, FieldInOut, WholeArrayIn, WholeArrayInOut);
     typedef void ExecutionSignature(WorkIndex, _1, _2, _3, _4);
   
     VTKM_CONT
@@ -599,7 +599,7 @@ namespace hashfight
       for (vtkm::Id pass = 0; pass < numPasses; pass++)
       {
         chunkStart = (vtkm::UInt32)(pass*chunkSize);
-        chunkEnd = (vtkm::UInt32)vtkm::Min((vtkm::Id)subTableSize, (pass+1)*chunkSize);
+        chunkEnd = (vtkm::UInt32)vtkm::Min(subTableSize, (pass+1)*chunkSize);
         if (subTableSize <= minSize)
         {
           chunkStart = 0;
@@ -671,7 +671,7 @@ namespace hashfight
       for (vtkm::Id pass = 0; pass < numPasses; pass++)
       {
         chunkStart = (vtkm::UInt32)(pass*chunkSize);
-        chunkEnd = (vtkm::UInt32)vtkm::Min((vtkm::Id)subTableSize, (pass+1)*chunkSize);
+        chunkEnd = (vtkm::UInt32)vtkm::Min(subTableSize, (pass+1)*chunkSize);
         if (subTableSize <= minSize)
         {
           chunkStart = 0;
@@ -767,7 +767,7 @@ namespace hashfight
 
     }  //End of while loop
     
-    std::cout << numLoops << "\n";
+    //std::cout << numLoops << "\n";
     //std::cout << "Total space used: " << totalSpaceUsed << "\n";
     //std::cout << "Total allocated space: " << hash_table.size << "\n";
 
@@ -835,7 +835,7 @@ namespace hashfight
       for (vtkm::Id pass = 0; pass < numPasses; pass++)
       {
         chunkStart = (vtkm::UInt32)(pass*chunkSize);
-        chunkEnd = (vtkm::UInt32)vtkm::Min((vtkm::Id)subTableSize, (pass+1)*chunkSize);
+        chunkEnd = (vtkm::UInt32)vtkm::Min(subTableSize, (pass+1)*chunkSize);
         if (subTableSize <= minSize)
         {
           chunkStart = 0;

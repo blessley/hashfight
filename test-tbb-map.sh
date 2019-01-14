@@ -19,7 +19,7 @@ counter='0'
 NUM_TBB_THREADS='32'
 
 #Test the number of TBB threads being used for each algorithm
-#${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS
+${hashfight_BUILD}/Hashing_TBB $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS
 env TBB_VERSION=1 ${unordered_map_BUILD}/UnorderedMap $k $l $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS
 env TBB_VERSION=1 ${thrust_BUILD}/SortSearch $k $f $failure_trials $counter $hashing_DATA $NUM_TBB_THREADS
 

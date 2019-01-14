@@ -143,7 +143,7 @@ struct HashFight
     vtkm::UInt32 SubTableStart;
 
   public:
-    typedef void ControlSignature(FieldIn<>, FieldIn<>, WholeArrayInOut<>);
+    typedef void ControlSignature(FieldIn, FieldIn, WholeArrayInOut);
     typedef void ExecutionSignature(WorkIndex, _1, _2, _3);
 
     VTKM_CONT
@@ -171,7 +171,7 @@ struct HashFight
     vtkm::UInt32 ShiftBits;
 
   public:
-    typedef void ControlSignature(FieldIn<>, FieldIn<>, WholeArrayIn<>, WholeArrayInOut<>);
+    typedef void ControlSignature(FieldIn, FieldIn, WholeArrayIn, WholeArrayInOut);
     typedef void ExecutionSignature(WorkIndex, _1, _2, _3, _4);
 
     static constexpr vtkm::UInt32 FNV1A_OFFSET = 2166136261;
@@ -266,7 +266,7 @@ struct HashFight
   class GetEntry : public vtkm::worklet::WorkletMapField
   {
   public:
-    typedef void ControlSignature(FieldIn<>, FieldIn<>, FieldOut<>);
+    typedef void ControlSignature(FieldIn, FieldIn, FieldOut);
     typedef void ExecutionSignature(_1, _2, _3);
 
     VTKM_CONT
@@ -309,7 +309,7 @@ struct HashFight
   class Scatter : public vtkm::worklet::WorkletMapField
   {
   public:
-    typedef void ControlSignature(FieldIn<>, FieldIn<>, WholeArrayInOut<>);
+    typedef void ControlSignature(FieldIn, FieldIn, WholeArrayInOut);
     typedef void ExecutionSignature(_1, _2, _3);
 
     VTKM_CONT
@@ -336,7 +336,7 @@ struct HashFight
     vtkm::UInt32 SubTableStart;
  
   public:
-    typedef void ControlSignature(FieldIn<>, WholeArrayIn<>, WholeArrayInOut<>);
+    typedef void ControlSignature(FieldIn, WholeArrayIn, WholeArrayInOut);
     typedef void ExecutionSignature(WorkIndex, _1, _2, _3);
  
     static constexpr vtkm::UInt32 FNV1A_OFFSET = 2166136261;
