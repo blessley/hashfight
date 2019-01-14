@@ -6,7 +6,7 @@ hashfight_BUILD="/glade/work/shaomeng/XeonGold/hashfight/hashfight/build"
 thrust_BUILD="/glade/work/shaomeng/XeonGold/hashfight/thrust-tbb"
 unordered_map_BUILD="/glade/work/shaomeng/XeonGold/hashfight/unordered-map"
 hashing_DATA="/glade/scratch/shaomeng/hashing-data" #HashFight data dir
-timings_OUT_DIR="/glade/work/shaomeng/XeonGold/hashfight/results/Jan13" #dir for output timing files
+timings_OUT_DIR="/glade/work/shaomeng/XeonGold/hashfight/results/Jan14" #dir for output timing files
 
 factors='1.03'
 failure='9'
