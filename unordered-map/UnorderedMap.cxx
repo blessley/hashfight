@@ -14,7 +14,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <utility>
-
+#include <sys/time.h>
 
 #define __BUILDING_TBB_VERSION__ 
 
@@ -100,7 +100,8 @@ struct MyHashCompare
 
 int main(int argc, char** argv)
 {
-
+  std::ofstream outfile;
+  outfile.open("random-output");
   
 #ifdef __BUILDING_TBB_VERSION__
   //Manually set the number of TBB threads invoked for this program
@@ -178,7 +179,9 @@ int main(int argc, char** argv)
   stop = tbb::tick_count::now();
   insertTime = (stop - start).seconds();
   //std::cout << "Sort: elapsed : " << sortTime/1000 << "\n";
-  
+  int randIndex = std::rand() % kInputSize; 
+  outfile << "(" << input_keys[randIndex] << ", " 
+	  << input_vals[randIndex] << ")\n"; 
 
   //std::cout << "Querying keys...\n";
   start = tbb::tick_count::now();
@@ -203,6 +206,9 @@ int main(int argc, char** argv)
   stop = tbb::tick_count::now();
   queryTime = (stop - start).seconds();
 
+  randIndex = std::rand() % kInputSize; 
+  outfile << "(" << query_keys[randIndex] << ", " 
+	  << query_vals[randIndex] << ")\n"; 
 #if 0
   unsigned int errors = CheckResults_basic(kInputSize,
                                   pairs_basic,
@@ -226,6 +232,8 @@ int main(int argc, char** argv)
   delete [] input_keys;
   delete [] input_vals;
   */
+
+  outfile.close();
 
   return 0;
 }
